@@ -73,6 +73,59 @@ Use GitHub Codespaces for a full development environment:
 - Same environment as CI/CD
 - No local setup required
 
+## Automatic Fork Syncing
+
+Your fork can automatically stay up to date with the upstream repository!
+
+### How It Works
+
+This repository includes an automatic fork sync workflow that:
+
+- **Runs daily** at 2 AM UTC to check for upstream changes
+- **Can be triggered manually** via the Actions tab (Sync Fork with Upstream → Run workflow)
+- **Only runs in forks**, not in the original repository
+- **Automatically merges** upstream changes if there are no conflicts
+
+### Enabling Automatic Sync
+
+The sync workflow is already included in your fork! It will:
+
+1. Automatically run on schedule (daily)
+2. Check for updates from the upstream repository
+3. Merge changes if there are no conflicts
+4. Push the updates to your fork's default branch
+
+### Manual Sync
+
+To manually sync your fork at any time:
+
+1. Go to the **Actions** tab in your fork
+2. Select **"Sync Fork with Upstream"** workflow
+3. Click **"Run workflow"**
+4. Click the green **"Run workflow"** button
+
+### Handling Merge Conflicts
+
+If automatic syncing fails due to merge conflicts:
+
+1. You'll see a failed workflow run in the Actions tab
+2. Sync manually using Git:
+   ```bash
+   git remote add upstream https://github.com/ekumachidi/BMAD-METHOD.git
+   git fetch upstream
+   git merge upstream/main
+   # Resolve any conflicts
+   git push origin main
+   ```
+
+### Alternative: GitHub's Built-in Sync
+
+You can also use GitHub's built-in fork sync button:
+
+1. Go to your fork's main page
+2. Click **"Sync fork"** button (appears when upstream has changes)
+3. Click **"Update branch"**
+
 ## Frequently Asked Questions
 
 ### Q: Will my PR be tested even if CI is disabled in my fork?
