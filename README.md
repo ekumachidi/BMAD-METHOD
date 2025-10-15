@@ -169,16 +169,6 @@ When you fork this repository, CI/CD workflows are **disabled by default** to sa
 
 See our [Fork CI/CD Guide](.github/FORK_GUIDE.md) for instructions on enabling workflows in your fork.
 
-#### Keeping Your Fork Updated
-
-Your fork can automatically stay in sync with the upstream repository! The automatic sync workflow:
-
-- **Runs daily** to check for upstream changes
-- **Can be triggered manually** from the Actions tab
-- **Automatically merges** upstream changes when there are no conflicts
-
-See the [Fork Guide](.github/FORK_GUIDE.md#automatic-fork-syncing) for details on automatic syncing.
-
 #### Contributing Workflow
 
 1. **Fork the repository** - Click the Fork button on GitHub
