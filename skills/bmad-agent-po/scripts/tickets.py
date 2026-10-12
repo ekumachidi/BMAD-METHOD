@@ -4,92 +4,26 @@
 # ///
 """tickets — read a ticket tree and answer what is next.
 
-A container folder holds its ticket file, `tickets.toml`, flat leaf files named `<type>-<slug>.md`,
-and the builds' plan files. An epic's `tickets.toml` lists its planned leaves as `[[entry]]` tables
-(`id`, `type`, `title`, `after`, and whatever else the plan records); an initiative's lists its
-epics as `[[epic]]` tables (`id`, `slug`, `after = [{epic, needs}]`). Tables are in build order.
-`id` names an entry for good and is never reused: a number, or letters and digits such as `6a`, and
-`6` and `"6"` are one id. A leaf file carries it in frontmatter, which is how the file joins its
-entry. An entry needs no leaf file to start. A ticket needs refining before it starts when it is a
-bug, its entry says `refine = true`, or it has no entry. A leaf file's frontmatter adds
-`tracker_status` and `refined`; its `after` and `hitl` replace the entry's, absent reading as empty,
-and a difference from the entry is `drift` on the row, which gives the file's and the entry's
-value of each field that differs. An entry's `unknown` is a question to settle before the ticket starts;
-once the entry is pulled it is the `Unknown:` lines of the file's Notes. A row carries it, and next holds
-the ticket under `blocked` until it is gone. A row also carries `plan_checkpoint` and `done_checkpoint`
-when the entry sets them: the orchestrator of an unattended run reads them, and no build does. `risk`
-(low, medium, high) is the ticket's proposed risk, the leaf file's once it is pulled; the build settles it
-in its plan.
+The tree's layout, the plan file, who writes each `status`, and how it becomes a board `state` are in
+the repo's `tools/ticket-tree-rules.md`; the keys of an entry and an epic table, and the forms `after`
+takes, are in the skill's `assets/tickets-template.toml`. Each command's `--help` says what it reads
+and returns.
 
-A plan is any other `.md` whose frontmatter has `ticket` and whose `type` is not a leaf type. A
-`ticket` that is an id joins the entry with that id in the plan's folder; any other string joins the
-leaf file with that stem (a backlog leaf). A plan is never a row of its own. It holds the ticket's
-`status`, `assignee`, `blocked_at`, and `blocked_reason`; a leaf file's own fields are read only when
-the ticket has no plan, and a plan with no `assignee` key leaves the leaf file's. A plan whose `ticket`
-names nothing is skipped, and one whose `status` is unknown blocks its ticket; next and status list both
-under `problems`.
+What this script decides itself: a leaf file joins its entry through the `id` in its frontmatter (`6`
+and `"6"` are one id); a plan joins through `ticket`, an entry id or a backlog file's stem, and is
+never a row. A leaf file's `after` and `hitl` replace the entry's, absent reading as empty; a
+difference is `drift` on the row. A prerequisite is met when it is done or in review, a dropped one
+still blocks, and an epic file's own `after` waits for that epic to be done. A plan whose `ticket`
+names nothing is skipped and one whose `status` is unknown blocks its ticket; both are listed under
+`problems`.
 
-`status` is draft, ready-for-dev, in-progress, in-review, or built from the builds (built is their
-last: the build finished and nobody has called it done), blocked from build-auto, done from the
-user or an orchestrator through mark, or dropped; absent means no build has started.
-On a tracker store `tracker_status` mirrors the tracker's word (backlog, in-progress, review, done,
-dropped). A ticket's `state` is `planned` with no file and no plan, else `tracker_status`, else
-derived from `status`: absent, draft, ready-for-dev -> backlog; in-progress, blocked -> in-progress;
-in-review, built -> review; done; dropped.
-
-`after` lists real prerequisites: a sibling's id (a number bare, since a quoted number is a tracker
-id; an id with a letter quoted), or a quoted string that is `<epic id>.<entry id>` for an entry in
-another epic of the same initiative, `epic-<slug>` for that whole epic, a sibling's file name, or a
-tracker id. An epic file's own `after` names epics and holds every ticket under it; rows show it as `gated_by`. A dropped prerequisite still blocks.
-
-On an initiative, or an epic it lists, next and status report `unpinned_after` (a declared epic
-`after` no entry of the waiting epic pins), `undeclared_after` (an entry's `after` into an epic its
-own epic does not declare), and `order_conflict` (an epic that waits on one later in build order).
-status's `epics` rows carry the declared `after` with its `needs`, and the epic file's own gate as
-`gated_by`.
-
-  next   [<dir>]                 tickets whose prerequisites are done or in review, grouped by state, in
-                                 build order; an epic's own `after` waits for that epic to be done. A
-                                 `blocked` row's `waiting_on` lists its unmet prerequisites
-  status [<dir>]                 every ticket in build order, what it blocks, counts by state, longest chain,
-                                 `next_id` (the id a new ticket in the folder takes: one past the highest
-                                 number used, or `next_id` at the top of its `tickets.toml` when that is
-                                 higher)
-  find   [<dir>] <ref>           the one ticket a reference names, with its entry's text fields (empty once
-                                 the entry is pulled: the file holds them) and the absolute paths
-                                 `epic_file` (its container's file), `story_file` (null until pulled), and
-                                 `plan` (where its plan is or goes)
-  pull   <dir> <id>              write entry id's leaf file: `after` and `hitl` always, other fields only
-                                 when the entry sets them; no status
-  mark   [<dir>] <ref> <status> [--assignee <who>] [--blocked <reason>]
-                                 set a ticket's status in its plan, creating a frontmatter-only plan when
-                                 there is none; --blocked sets blocked_at and blocked_reason, else both are
-                                 cleared (repo store only)
-  mirror [<dir>]                 write what a tracker returned into leaf files, pulling a file when the
-                                 entry has none. Stdin is a JSON array, one object per ticket: `ref` (or
-                                 `tracker_id` alone, for a ticket that already carries it) and any of
-                                 `tracker_id`, `remote`, `tracker_status`, `assignee`, `after`. Only the
-                                 keys given are written, and never `status` (tracker stores only)
-
-`<dir>` is an epic folder, a backlog folder, or an initiative folder (all its epics). `<ref>` is
-`<epic id>.<entry id>`, an entry id inside an epic folder (one with a letter, from any folder), a
-tracker id, a file name, or an unbroken phrase from the title that matches one ticket. Each row of
-next, status, and find carries `ref`, a reference find resolves in the folder the command ran on.
-`--project-root` names the project holding `_bmad/` when the tickets live outside it. A relative
-`<dir>` that is not a folder under the working directory is looked up under `{output_folder}`, then
-the active initiative, then the project root, so an epic's folder name alone finds it.
-
-With no `<dir>`, next, status, find, mark, and mirror run on the active initiative,
-`{output_folder}/{active_initiative}`. next and status then also report `backlog`, the same view of
-`{output_folder}/backlog` when that folder exists, each row's `ref` its file name; find, mark, and mirror
-look there for a ticket the initiative does not hold.
 The project root is `--project-root`, else the first folder at or above the working directory that
-holds `_bmad/`. `active_initiative` and `output_folder` (`[core]`) come from the
-BMad config, merged by the project's `_bmad/scripts/config_utils.py`. `{project-root}` is
-substituted, and a relative path is taken from the project root.
+holds `_bmad/`; `output_folder` and `active_initiative` come from the merged BMad config. A relative
+`<dir>` that is not under the working directory is looked up under `{output_folder}`, then the
+active initiative, then the project root.
 
-Output is one JSON object on stdout. Exit 0 on success, 1 on a malformed tree, 2 when
-the store forbids the operation.
+Output is one JSON object on stdout. Exit 0 on success, 1 on a malformed tree, 2 when the store
+forbids the operation.
 """
 
 import argparse
