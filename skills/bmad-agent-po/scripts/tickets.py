@@ -1002,7 +1002,7 @@ PULLED = """---
 
 {description}
 
-## Acceptance Criteria
+## Requirements
 
 Verify: {verify}
 

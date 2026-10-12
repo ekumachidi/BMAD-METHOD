@@ -4,7 +4,7 @@
 # It updates with the skill and holds only what is specific to this store: the rules every store shares
 # are in references/board.md. Comments and `description` are never loaded; `description` is for choosing a store.
 #
-# Tickets and artifacts live together as markdown files under `output_folder` (layout in SKILL.md,
+# Tickets and artifacts live together as markdown files under `output_folder` (layout in workflow.md,
 # The ticket tree), committed in the monorepo or in a repo of their own. Status and assignee change by commit, and the skill never pushes,
 # so others see them only after a push and pull.
 

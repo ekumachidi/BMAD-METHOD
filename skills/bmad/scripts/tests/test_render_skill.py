@@ -38,7 +38,13 @@ SHARED_SCRIPTS = (
     "resolve_customization.py",
 )
 SHIPPED_SKILLS = ("bmad-build-auto", "bmad-build", "bmad-code-review")
-RENDERED_SKILLS = (*SHIPPED_SKILLS, "bmad-walkthrough", "bmad-retrospective", "bmad-qa-generate-e2e-tests")
+RENDERED_SKILLS = (
+    *SHIPPED_SKILLS,
+    "bmad-walkthrough",
+    "bmad-retrospective",
+    "bmad-qa-generate-e2e-tests",
+    "bmad-agent-po",
+)
 COMPILE_TOKEN = re.compile(r"\{\{\s*(?:config|workflow|agent)\.|\{\{\s*(?:rendered\(|initiative_folder)|\{%")
 DISPATCH_PREFIX = "read and follow "
 
@@ -789,6 +795,30 @@ class RenderSkillTests(unittest.TestCase):
         other = rs.render(ws.project, elsewhere)
         self.assertNotEqual(other.parent, snap)
         self.assertIn((elsewhere / "scripts" / "git_evidence.py").as_posix(), _markdown(other.parent))
+
+    def test_non_markdown_assets_are_copied_into_the_generation_and_reached_by_values(self):
+        ws = self._workspace()
+        skill = self._fixture_skill(
+            ws, '[workflow]\ntemplate = "{skill-root}/assets/x.toml"\n', "{{ workflow.template }}\n"
+        )
+        asset = skill / "assets" / "x.toml"
+        asset.parent.mkdir()
+        content = b'# keys\n[[entries]]\nid = 1\ntitle = "\xc3\xa9"\n'
+        asset.write_bytes(content)
+        workflow = rs.render(ws.project, skill)
+        snap = workflow.parent
+        copied = snap / "assets" / "x.toml"
+        self.assertEqual(copied.read_bytes(), content)
+        self.assertEqual(workflow.read_text(encoding="utf-8"), f"{copied.as_posix()}\n")
+        manifest = json.loads((snap / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["outputs"]["assets/x.toml"], rs._hash_bytes(content))
+        self.assertEqual(manifest["inputs"]["source_sha256"]["assets/x.toml"], rs._hash_bytes(content))
+        self.assertEqual(rs.render(ws.project, skill), workflow)
+        asset.write_bytes(content + b"\n[[entries]]\nid = 2\n")
+        changed = rs.render(ws.project, skill)
+        self.assertNotEqual(changed, workflow)
+        self.assertEqual((changed.parent / "assets" / "x.toml").read_bytes(), asset.read_bytes())
+        self.assertEqual(copied.read_bytes(), content)
 
     def test_cli_from_nested_cwd_dispatches_one_absolute_workflow(self):
         ws = self._workspace()

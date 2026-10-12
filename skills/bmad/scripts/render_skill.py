@@ -222,6 +222,24 @@ def _load_sources(skill_dir: Path) -> dict[str, str]:
     return sources
 
 
+def _load_assets(skill_dir: Path) -> dict[str, bytes]:
+    """Non-Markdown files under assets/ are copied into the generation unchanged, so a
+    customization value's `{skill-root}` (bound to the generation) reaches them too."""
+    assets: dict[str, bytes] = {}
+    for candidate in sorted((skill_dir / "assets").rglob("*")):
+        if candidate.suffix == ".md" or not candidate.is_file():
+            continue
+        name = candidate.relative_to(skill_dir).as_posix()
+        path = candidate.resolve(strict=True)
+        if not path.is_relative_to(skill_dir):
+            raise RenderError(f"render asset escapes skill directory: {name}")
+        try:
+            assets[name] = path.read_bytes()
+        except OSError as error:
+            raise RenderError(f"failed to read render asset {path}: {error}") from error
+    return assets
+
+
 def _resolve_config_value(value: Any, label: str, project_root: Path) -> str:
     text = _require_string(value, label)
     if "{project-root}" not in text:
@@ -621,6 +639,7 @@ def render(
         raise RenderError(f"project root does not contain _bmad/: {project_root}")
 
     sources = _load_sources(skill_dir)
+    assets = _load_assets(skill_dir)
     central = load_central_config(project_root)
     has_customization = bool(overrides is not None or assignments) or (skill_dir / "customize.toml").is_file()
     defaults = load_toml(skill_dir / "customize.toml", required=True) if has_customization else None
@@ -632,7 +651,9 @@ def render(
         customization = structural_merge(structural_merge(customization, file_layer), command_layer)
         supplied = _leaf_paths(file_layer) | _leaf_paths(command_layer)
 
+    # Copied assets key the generation like rendered sources do, so an edited asset is not served stale.
     source_hashes = {name: _hash_bytes(content.encode("utf-8")) for name, content in sources.items()}
+    source_hashes |= {name: _hash_bytes(content) for name, content in assets.items()}
     root_hash = _hash_bytes(str(project_root).encode("utf-8"))[:12]
     slug = re.sub(r"[^a-z0-9]+", "-", project_root.name.lower()).strip("-") or "project"
     slug = slug[:80].rstrip("-") or "project"
@@ -671,7 +692,7 @@ def render(
     generation_hash = _hash_bytes(_canonical_json(identity))[:20]
     destination = namespace / generation_hash
     _, rendered = render_pass(destination)
-    outputs = {name: content.encode("utf-8") for name, content in rendered.items()}
+    outputs = {name: content.encode("utf-8") for name, content in rendered.items()} | assets
     output_hashes = {name: _hash_bytes(content) for name, content in outputs.items()}
     manifest = {
         "schema_version": 1,

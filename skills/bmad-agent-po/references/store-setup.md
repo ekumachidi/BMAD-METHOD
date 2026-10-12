@@ -4,6 +4,8 @@ The store config is two layers that `{skill-root}/scripts/read_store.py` reads a
 
 Run this when the user wants a tracker connected or the store reconfigured or switched.
 
+{{ workflow.store_before }}
+
 1. **Choose.** `uv run {skill-root}/scripts/read_store.py --starters` lists the shipped stores with a description of each. Every hosted one has a free tier; choosing it costs an account setup, or only the config when the user already has an account. The user may also bring a config of their own, as a file or a url.
 2. **Write the project file.** `[tickets]` with `store` and the address fields the starter leaves empty — key, repo, site, team, database, board — filled from the user's answers; the comments in the starter file say what each one is. Copy nothing else from the starter: a key the project file leaves out follows the skill as it updates. A project file that is a whole copy of a starter predates this layout: cut it down to `store`, the address fields, and what the team changed. A config the user brings goes into the project file whole; so does a store with no starter, modelled on the nearest one. For the repo store, delete the project file.
 3. **Connect.** Offer to run the store's `setup` verb: tool install, auth, and the labels, lists, statuses, or properties the maps name. Where the tracker's types or statuses differ from the starter's maps, set those entries under `[tickets.types]` or `[tickets.status]` in the project file. A state the tracker has no status for takes the status of the state before it, never an empty value: with no review status, `review` takes the in-progress one.
@@ -11,4 +13,6 @@ Run this when the user wants a tracker connected or the store reconfigured or sw
 
 A house rule on top of a verb, such as a label every new issue takes, goes in `persistent_facts` in this skill's customization. Set a whole verb under `[verbs]` in the project file only when the store's commands differ, because a replaced verb no longer follows the skill.
 
-Then go on with what the user came to do. When that is done, offer once a `bmad-customize` pass on this skill: its `customize.toml` holds the team's epic boundary rule, publication timing, own checks, and templates.
+Then go on with what the user came to do. When that is done, offer once a `bmad-customize` pass on this skill: its `customize.toml` holds the team's epic boundary rule, publication timing, own checks, templates, and a before and after instruction per capability.
+
+{{ workflow.store_after }}

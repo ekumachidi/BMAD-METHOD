@@ -4,6 +4,8 @@ Operations on existing tickets. Read an existing ticket before changing it; if i
 
 `tickets.py` below is `uv run {skill-root}/scripts/tickets.py --project-root {project-root}`. `tickets.py <command> --help` gives a command's arguments and output keys.
 
+{{ workflow.board_before }}
+
 ## Reading the tree
 
 - A ticket the user names — "refine 1.2", "start ABCD-13", "build the cart service scaffold" — resolves through `tickets.py find [<folder>] <ref>` before you pull, review, refine, start, or mark it. `<ref>` is `<epic id>.<entry id>`, an entry id inside the epic folder, a tracker id, a file name, or an unbroken phrase from the title. When the user's words are looser than that, read `status` and pick the ticket yourself, asking when more than one fits. In the result, `story_file` is null until the entry is pulled, and `plan` is where the plan is or goes.
@@ -25,7 +27,7 @@ When one of these comes back with something in it, act on it:
 
 ## Publish
 
-Approving a breakdown records it in the epic's `tickets.toml`; it does not start work. On the repo store, committing the approved `tickets.toml` is the publish. On a tracker, `{workflow.publication}` says when: `at_inception` offers to publish the agreed set after validation; `on_start` publishes each ticket when it starts. An explicit user request takes precedence.
+Approving a breakdown records it in the epic's `tickets.toml`; it does not start work. On the repo store, committing the approved `tickets.toml` is the publish. On a tracker, the team's choice is `{{ workflow.publication }}`: `at_inception` offers to publish the agreed set after validation; `on_start` publishes each ticket when it starts. An explicit user request takes precedence.
 
 Publishing is not a status: on a tracker it is the remote item existing, with `tracker_id` and `remote` in the leaf file. Publish through `write`:
 
@@ -52,20 +54,20 @@ A leaf's `status`, `blocked_at`, and `blocked_reason` live in its plan, `<type>-
 | `draft`, `ready-for-dev`, `in-progress`, `in-review`, `built` | `bmad-build`, `bmad-build-auto` as they work |
 | `blocked` | `bmad-build-auto` when it halts, with the reason in the plan |
 | `done` | the user, or an orchestrator, through `tickets.py mark` |
-| `dropped` | `bmad-ticket`, when the user says so |
+| `dropped` | Sofia, when the user says so |
 
 A ticket's state is `planned` for an entry with no file and no plan; else `tracker_status` when present; else from `status`: none, `draft`, or `ready-for-dev` is `backlog`; `in-progress` or `blocked` is `in-progress`; `in-review` or `built` is `review`; `done` and `dropped` are themselves. `tracker_status` exists only on a tracker store: the BMad word for the tracker's current status.
 
-No skill moves a ticket past `built`, which means the build finished and nobody has called it done. `bmad-ticket` never moves a leaf on its own: it changes a leaf's status or assignee only when the user asks, for `done`, `dropped`, or a person working the ticket by hand. When the user says a ticket is done, mark it for them.
+No skill moves a ticket past `built`, which means the build finished and nobody has called it done. Sofia never moves a leaf on its own: it changes a leaf's status or assignee only when the user asks, for `done`, `dropped`, or a person working the ticket by hand. When the user says a ticket is done, mark it for them.
 
 - **Repo store.** `tickets.py mark [<folder>] <ref> <status> [--assignee <who>] [--blocked <reason>]`, then the commit the `write` verb describes. `mark` takes its folder and ref as `find` does, writes the plan and never the leaf file, and creates a plan holding only frontmatter when there is none. It writes what it is told; the checks in this file are yours. The assignee is in the plan.
 - **Tracker.** `write` transitions the item to `[tickets.status].<state>`, the ticket's `state`, and sets its assignee; it never sends `status` as a word. Then mirror the item (Tracker sync): its status comes back as `tracker_status` and its assignee lands in the leaf file. `mark` refuses a tracker store.
 - **Waiting on a person or an answer**, not on a prerequisite, on the repo store: `mark` with the ticket's current status, `draft` when it has none, and `--blocked <reason>` sets `blocked_at` (today) and `blocked_reason`, and `next` lists the ticket under `blocked`; a `mark` without it clears both when the ticket moves.
-- **A container's** `status` is `bmad-ticket`'s, an edit to its file: absent until the first ticket under it starts, then `in-progress`, and `done` or `dropped` when the user confirms it; containers never take review. A published container gets the same transition through `write`.
+- **A container's** `status` is Sofia's, an edit to its file: absent until the first ticket under it starts, then `in-progress`, and `done` or `dropped` when the user confirms it; containers never take review. A published container gets the same transition through `write`.
 
 ## Close, drop, move
 
-- Closing every child does not close the parent. Run the closure check in `validate.md` against its requirements and Done when; the user confirms the parent is complete.
+- {{ workflow.board_closure }}
 - Drop only after a `Dropped:` line says why: in the ticket's Notes, or in its epic's Notes when the ticket has no file. Then set its status to `dropped` as Status says; an entry never published to the tracker takes `tracker_status: dropped` through `mirror`. An entry is never deleted from an approved `tickets.toml`, so its id is never reused. A dropped ticket still blocks what waits on it, in any epic: `status` lists them under `blocks`; remove or repoint it in each one's `after` with the user. Cancelling a container cancels its descendants after the user confirms.
 - Moving a leaf to another parent: first write the old folder's `next_id` (from `tickets.py status <folder>`) at the top of its `tickets.toml` as `next_id = <n>`, so the id that leaves is not given out again. Then move its entry from the old `tickets.toml` to its place in the new one's build order, with that folder's `next_id` (from `tickets.py status <folder>`) as its id; move the leaf file and its plan into the new folder; set the file's `id` and `parent` and the plan's `ticket` to the new id. Then rewrite both directions of `after`: its own, where a sibling it left is now `<epic id>.<entry id>`, and every `after` that named it. Move its `covers` ids between the two epics when the requirement moves with it. An epic moves as its whole folder, with its `[[epic]]` table. Then run `tickets.py status` on the initiative and clear what it reports.
 
@@ -78,3 +80,5 @@ The tree is the working copy and a tracker is its remote; nothing syncs on its o
 - A body that differs from the file: show both and ask.
 - A ticket the tracker shows under another parent is moved as Close, drop, move says, then mirrored again.
 - Commit the changed files on the current branch when `output_folder` is in a git repo; never push.
+
+{{ workflow.board_after }}

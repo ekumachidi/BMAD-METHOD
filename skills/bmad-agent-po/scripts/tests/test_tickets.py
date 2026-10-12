@@ -662,7 +662,7 @@ covers = ["R2", "R3"]
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(json.loads(r.stdout), {"file": "story-scaffold-the-cart.md", "refine": True})
         text = (self.epic / "story-scaffold-the-cart.md").read_text(encoding="utf-8")
-        self.assertIn("Verify: It runs.", text)
+        self.assertIn("## Requirements\n\nVerify: It runs.", text)
         self.assertIn("covers: [R1]", text)
         self.assertEqual(self.files(self.next()["ready_to_refine"]), ["story-scaffold-the-cart.md"])
         self.assertEqual(run("pull", str(self.epic), "1").returncode, 1)
