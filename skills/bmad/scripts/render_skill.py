@@ -178,6 +178,30 @@ def _require_review_layers(value: Any, label: str) -> list[dict[str, str]]:
     return result
 
 
+def _keyed_by_code(tables: list[dict[str, Any]]) -> bool:
+    """Menus key their items on `code`; review layers on `id`. Same order as `structural_merge`."""
+    return all("code" in table for table in tables)
+
+
+def _require_keyed_tables(value: Any, label: str, key: str) -> list[dict[str, str]]:
+    if not isinstance(value, list):
+        raise RenderError(f"{label} must be a list of tables")
+    result: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for index, item in enumerate(value):
+        item_label = f"{label}[{index}]"
+        if not isinstance(item, dict):
+            raise RenderError(f"{item_label} must be a table")
+        identifier = _require_string(item.get(key), f"{item_label}.{key}")
+        if identifier in seen:
+            raise RenderError(f"duplicate {label} {key} `{identifier}`")
+        seen.add(identifier)
+        result.append(
+            {field: _require_string(text, f"{item_label}.{field}", allow_empty=True) for field, text in item.items()}
+        )
+    return result
+
+
 def _load_sources(skill_dir: Path) -> dict[str, str]:
     sources: dict[str, str] = {}
     for candidate in sorted(skill_dir.rglob("*.md")):
@@ -263,6 +287,8 @@ def _resolve_customization_value(value: Any, default: Any, label: str) -> Any:
         return _require_string(value, label, allow_empty=allow_empty)
     if isinstance(default, list):
         if default and all(isinstance(item, dict) for item in default):
+            if _keyed_by_code(default):
+                return _require_keyed_tables(value, label, "code")
             return _require_review_layers(value, label)
         return _require_string_list(value, label)
     if isinstance(default, (bool, int, float, date, time)):
@@ -305,6 +331,13 @@ class _LayerList(list):
         return _format_review_layers(list(self))
 
 
+class _TableList(list):
+    """A code-keyed table customization such as a menu; inserted directly it renders one bullet per table."""
+
+    def __str__(self) -> str:
+        return _format_markdown_list(["\n".join(f"{key}: {text}" for key, text in table.items()) for table in self])
+
+
 def _bind_customization(value: Any, label: str, destination: Path) -> Any:
     """Bind `{skill-root}` in customization prose to the generation and wrap lists for insertion."""
     root = destination.as_posix()
@@ -312,9 +345,8 @@ def _bind_customization(value: Any, label: str, destination: Path) -> Any:
         return _Text(value.replace("{skill-root}", root), label)
     if isinstance(value, list):
         if value and all(isinstance(item, dict) for item in value):
-            return _LayerList(
-                [{key: text.replace("{skill-root}", root) for key, text in layer.items()} for layer in value]
-            )
+            tables = [{key: text.replace("{skill-root}", root) for key, text in table.items()} for table in value]
+            return _TableList(tables) if _keyed_by_code(tables) else _LayerList(tables)
         return _MarkdownList([item.replace("{skill-root}", root) for item in value])
     return value
 
@@ -422,6 +454,12 @@ class _RenderContext:
                 None if defaults is None else defaults.get("workflow", {}),
                 customization.get("workflow", {}),
                 "workflow",
+                self,
+            ),
+            "agent": _CustomizationTable(
+                None if defaults is None else defaults.get("agent", {}),
+                customization.get("agent", {}),
+                "agent",
                 self,
             ),
             "rendered": self._rendered,

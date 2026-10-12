@@ -39,7 +39,7 @@ SHARED_SCRIPTS = (
 )
 SHIPPED_SKILLS = ("bmad-build-auto", "bmad-build", "bmad-code-review")
 RENDERED_SKILLS = (*SHIPPED_SKILLS, "bmad-walkthrough", "bmad-retrospective", "bmad-qa-generate-e2e-tests")
-COMPILE_TOKEN = re.compile(r"\{\{\s*(?:config|workflow)\.|\{\{\s*(?:rendered\(|initiative_folder)|\{%")
+COMPILE_TOKEN = re.compile(r"\{\{\s*(?:config|workflow|agent)\.|\{\{\s*(?:rendered\(|initiative_folder)|\{%")
 DISPATCH_PREFIX = "read and follow "
 
 sys.path.insert(0, str(SCRIPTS_SRC))
@@ -407,6 +407,142 @@ class RenderSkillTests(unittest.TestCase):
                 override = ws.project / "bad.toml"
                 override.write_text(content, encoding="utf-8")
                 self._assert_halt(self._cli(ws.project, skill, args=("--overrides", str(override))), ws)
+
+    def test_agent_table_layers_like_workflow_and_merges_menu_by_code(self):
+        ws = self._workspace()
+        skill = self._fixture_skill(
+            ws,
+            "\n".join(
+                [
+                    "[agent]",
+                    'name = "Sofia"',
+                    'title = "Product Owner"',
+                    'icon = "🧭"',
+                    'role = "Own the backlog."',
+                    'persistent_facts = ["shipped fact"]',
+                    "[[agent.menu]]",
+                    'code = "SPEC"',
+                    'description = "Write the spec"',
+                    'prompt = "Read `{skill-root}/references/spec.md` fully and follow it."',
+                    "[[agent.menu]]",
+                    'code = "TICKETS"',
+                    'description = "Slice the work"',
+                    'skill = "bmad-ticket"',
+                    "[workflow]",
+                    'spec_before = ""',
+                    'checks = ["shipped check"]',
+                    "",
+                ]
+            ),
+            "{{ agent.icon }} {{ agent.name }}, {{ agent.title }}: {{ agent.role }}\n"
+            "{{ agent.persistent_facts }}\n"
+            "{% for item in agent.menu %}\n{{ item.code }}: {{ item.description }}\n{% endfor %}\n"
+            "{{ agent.menu }}\n{{ workflow.spec_before }}{{ workflow.checks }}\n",
+        )
+        (ws.bmad / "custom" / f"{skill.name}.toml").write_text(
+            "\n".join(
+                [
+                    "[agent]",
+                    'persistent_facts = ["team fact"]',
+                    "[[agent.menu]]",
+                    'code = "TICKETS"',
+                    'description = "Slice the work our way"',
+                    'skill = "bmad-ticket"',
+                    "[workflow]",
+                    'checks = ["team check"]',
+                    "",
+                ]
+            ),
+            encoding="utf-8",
+        )
+        (ws.bmad / "custom" / f"{skill.name}.user.toml").write_text(
+            '[agent]\npersistent_facts = ["user fact"]\n', encoding="utf-8"
+        )
+        entry = rs.render(
+            ws.project,
+            skill,
+            assignments=['agent.menu=[{ code = "BOARD", description = "Show the board", skill = "bmad-ticket" }]'],
+        )
+        snap = entry.parent
+        self.assertEqual(
+            entry.read_text(encoding="utf-8"),
+            "🧭 Sofia, Product Owner: Own the backlog.\n"
+            "- shipped fact\n- team fact\n- user fact\n"
+            "SPEC: Write the spec\nTICKETS: Slice the work our way\nBOARD: Show the board\n"
+            "- code: SPEC\n  description: Write the spec\n"
+            f"  prompt: Read `{snap.as_posix()}/references/spec.md` fully and follow it.\n"
+            "- code: TICKETS\n  description: Slice the work our way\n  skill: bmad-ticket\n"
+            "- code: BOARD\n  description: Show the board\n  skill: bmad-ticket\n"
+            "- shipped check\n- team check\n",
+        )
+        manifest = json.loads((snap / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(
+            manifest["inputs"]["resolved_values"]["customization.agent.menu"],
+            [
+                {
+                    "code": "SPEC",
+                    "description": "Write the spec",
+                    "prompt": "Read `{skill-root}/references/spec.md` fully and follow it.",
+                },
+                {"code": "TICKETS", "description": "Slice the work our way", "skill": "bmad-ticket"},
+                {"code": "BOARD", "description": "Show the board", "skill": "bmad-ticket"},
+            ],
+        )
+        self.assertEqual(
+            manifest["inputs"]["resolved_values"]["customization.agent.persistent_facts"],
+            ["shipped fact", "team fact", "user fact"],
+        )
+        for content, expected in (
+            ('[[agent.menu]]\ncode = ""\ndescription = "blank"\n', "`code` must not be empty"),
+            ('[[agent.menu]]\ncode = "SPEC"\ndescription = 7\n', r"agent\.menu\[0\]\.description must be a string"),
+        ):
+            with self.subTest(content=content):
+                (ws.bmad / "custom" / f"{skill.name}.user.toml").write_text(content, encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, expected):
+                    rs.render(ws.project, skill)
+        # Layers merge by code, so only the shipped default can carry a duplicate.
+        shipped_duplicate = self._workspace()
+        duplicate = self._fixture_skill(
+            shipped_duplicate,
+            '[[agent.menu]]\ncode = "SPEC"\ndescription = "one"\n[[agent.menu]]\ncode = "SPEC"\ndescription = "two"\n',
+            "{{ agent.menu }}\n",
+        )
+        with self.assertRaisesRegex(rs.RenderError, r"duplicate customization\.agent\.menu code `SPEC`"):
+            rs.render(shipped_duplicate.project, duplicate)
+
+    def test_undefined_agent_name_halts_with_source_location(self):
+        ws = self._workspace()
+        defaults = '[agent]\nname = "Sofia"\n[workflow]\nmessage = "base"\n'
+        skill = self._fixture_skill(ws, defaults, "ok\n{{ agent.missing }}\n")
+        result = self._cli(ws.project, skill)
+        self._assert_halt(result, ws)
+        self.assertEqual(result.stdout, "HALT: workflow.md:2: missing customization parameter `agent.missing`\n")
+        (skill / "workflow.md").write_text("{{ agent.name }}\n", encoding="utf-8")
+        with self.assertRaisesRegex(rs.RenderError, "missing customization parameter `agent.title`"):
+            rs.render(ws.project, skill, assignments=["agent.title=PO"])
+        (ws.bmad / "custom" / f"{skill.name}.toml").write_text('[agent]\ntitle = "PO"\n', encoding="utf-8")
+        with self.assertRaisesRegex(rs.RenderError, r"fixture\.toml sets keys fixture does not declare: agent\.title$"):
+            rs.render(ws.project, skill)
+
+    def test_skill_without_agent_table_renders_as_before_and_rejects_agent_references(self):
+        ws = self._workspace()
+        skill = self._fixture_skill(ws, '[workflow]\nmessage = "shipped"\n', "{{ workflow.message }}\n")
+        entry = rs.render(ws.project, skill)
+        self.assertEqual(entry.read_text(encoding="utf-8"), "shipped\n")
+        manifest = json.loads((entry.parent / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["inputs"]["resolved_values"], {"customization.workflow.message": "shipped"})
+        (skill / "workflow.md").write_text("{{ workflow.message }} {{ agent.name }}\n", encoding="utf-8")
+        with self.assertRaisesRegex(rs.RenderError, r"^workflow\.md:1: missing customization parameter `agent\.name`$"):
+            rs.render(ws.project, skill)
+        (skill / "workflow.md").write_text("{{ workflow.message }} {{ workflow.name }}\n", encoding="utf-8")
+        with self.assertRaisesRegex(
+            rs.RenderError, r"^workflow\.md:1: missing customization parameter `workflow\.name`$"
+        ):
+            rs.render(ws.project, skill)
+        (skill / "customize.toml").unlink()
+        (skill / "workflow.md").write_text("{{ agent.name }}\n", encoding="utf-8")
+        with self.assertRaisesRegex(rs.RenderError, r"^workflow\.md:1: `agent\.name` requires customize\.toml$"):
+            rs.render(ws.project, skill)
 
     def test_nested_conditions_omit_files_and_do_not_resolve_excluded_expressions(self):
         ws = self._workspace()
