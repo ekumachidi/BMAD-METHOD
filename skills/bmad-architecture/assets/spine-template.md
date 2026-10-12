@@ -10,7 +10,6 @@ created: '{date}'
 updated: '{date}'
 binds: []                   # capability / unit IDs governed (from the driving spec; at epic altitude, also the inherited parent AD ids)
 sources: []
-companions: []
 ---
 
 # Architecture Spine — {name}
@@ -72,7 +71,7 @@ companions: []
 
 | Capability / Area | Lives in | Governed by |
 | --- | --- | --- |
-| {CAP-id / area} | {component / module} | {AD-id, convention, paradigm} |
+| {R-id / area} | {component / module} | {AD-id, convention, paradigm} |
 
 ## Deferred
 

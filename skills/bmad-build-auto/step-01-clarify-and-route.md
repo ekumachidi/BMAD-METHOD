@@ -53,7 +53,7 @@ This runs on the output of `tickets.py find` for one ticket. Set `ticket_args` t
        - **Architecture** (`architecture-*/architecture-*.md`) — technical design decisions and constraints
        - **UX/Design** (`ux-*/`, with `DESIGN.md` and `EXPERIENCE.md`) — user experience and interaction design
        - **Product Brief** (`brief-*/brief-*.md`) — project vision and scope
-       - **Spec** (`spec-*/spec-*.md`) — the capability contract
+       - **Ticket file** (`initiative-*/initiative-*.md`, and `epic-*/epic-*.md` under it) — the capability contract: the active node's Requirements and Constraints
      - Scan the listing for folders matching these patterns. If any look relevant to the current intent, load them selectively — you don't need all of them, but you need the right constraints and requirements rather than guessing from code alone.
 2. Resolve intent from the invocation prompt and loaded artifacts. Do not fantasize or leave open questions. If the intent cannot be resolved, HALT with status `blocked` and the unresolved questions as blocking condition.
 3. Version control sanity check. If version control is unavailable, skip this check. Otherwise require a clean working tree, a branch that fits the intent, and writable repository metadata. For Git, run `git add --refresh -- .`, then confirm the tree is still clean; on failure or change, HALT with status `blocked` and blocking condition `version-control metadata not writable`. For a ticket from the tree, judge the branch against the epic, not the story. HALT on a dirty tree or obvious branch mismatch.

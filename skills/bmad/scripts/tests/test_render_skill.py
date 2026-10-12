@@ -433,7 +433,7 @@ class RenderSkillTests(unittest.TestCase):
                     "[[agent.menu]]",
                     'code = "TICKETS"',
                     'description = "Slice the work"',
-                    'skill = "bmad-ticket"',
+                    'skill = "bmad-fixture-a"',
                     "[workflow]",
                     'spec_before = ""',
                     'checks = ["shipped check"]',
@@ -453,7 +453,7 @@ class RenderSkillTests(unittest.TestCase):
                     "[[agent.menu]]",
                     'code = "TICKETS"',
                     'description = "Slice the work our way"',
-                    'skill = "bmad-ticket"',
+                    'skill = "bmad-fixture-a"',
                     "[workflow]",
                     'checks = ["team check"]',
                     "",
@@ -467,7 +467,7 @@ class RenderSkillTests(unittest.TestCase):
         entry = rs.render(
             ws.project,
             skill,
-            assignments=['agent.menu=[{ code = "BOARD", description = "Show the board", skill = "bmad-ticket" }]'],
+            assignments=['agent.menu=[{ code = "BOARD", description = "Show the board", skill = "bmad-fixture-a" }]'],
         )
         snap = entry.parent
         self.assertEqual(
@@ -477,8 +477,8 @@ class RenderSkillTests(unittest.TestCase):
             "SPEC: Write the spec\nTICKETS: Slice the work our way\nBOARD: Show the board\n"
             "- code: SPEC\n  description: Write the spec\n"
             f"  prompt: Read `{snap.as_posix()}/references/spec.md` fully and follow it.\n"
-            "- code: TICKETS\n  description: Slice the work our way\n  skill: bmad-ticket\n"
-            "- code: BOARD\n  description: Show the board\n  skill: bmad-ticket\n"
+            "- code: TICKETS\n  description: Slice the work our way\n  skill: bmad-fixture-a\n"
+            "- code: BOARD\n  description: Show the board\n  skill: bmad-fixture-a\n"
             "- shipped check\n- team check\n",
         )
         manifest = json.loads((snap / "manifest.json").read_text(encoding="utf-8"))
@@ -490,8 +490,8 @@ class RenderSkillTests(unittest.TestCase):
                     "description": "Write the spec",
                     "prompt": "Read `{skill-root}/references/spec.md` fully and follow it.",
                 },
-                {"code": "TICKETS", "description": "Slice the work our way", "skill": "bmad-ticket"},
-                {"code": "BOARD", "description": "Show the board", "skill": "bmad-ticket"},
+                {"code": "TICKETS", "description": "Slice the work our way", "skill": "bmad-fixture-a"},
+                {"code": "BOARD", "description": "Show the board", "skill": "bmad-fixture-a"},
             ],
         )
         self.assertEqual(

@@ -68,7 +68,7 @@ This runs on the output of `tickets.py find` for one ticket. Find's `description
        - **Architecture** (`architecture-*/architecture-*.md`) — technical design decisions and constraints
        - **UX/Design** (`ux-*/`, with `DESIGN.md` and `EXPERIENCE.md`) — user experience and interaction design
        - **Product Brief** (`brief-*/brief-*.md`) — project vision and scope
-       - **Spec** (`spec-*/spec-*.md`) — the capability contract
+       - **Ticket file** (`initiative-*/initiative-*.md`, and `epic-*/epic-*.md` under it) — the capability contract: the active node's Requirements and Constraints
      - Scan the listing for folders matching these patterns. If any look relevant to the current intent, load them selectively — you don't need all of them, but you need the right constraints and requirements rather than guessing from code alone.
 2. Carry the intent and loaded evidence forward as-is. Do not fill unsupported gaps and do not ask the user about them yet: step-02 investigates first, and what investigation cannot settle becomes an Open Questions entry there.
 3. Version control sanity check. Is the working tree clean? Does the current branch make sense for this intent — considering its name and recent history? If the tree is dirty or the branch is an obvious mismatch, HALT and ask the human before proceeding. If version control is unavailable, skip this check.

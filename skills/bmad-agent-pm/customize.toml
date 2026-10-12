@@ -56,13 +56,3 @@ principles = [
 code = "PRD"
 description = "Create, update, or validate a PRD — state your intent or the skill will ask"
 skill = "bmad-prd"
-
-[[agent.menu]]
-code = "CC"
-description = "Determine how to proceed if major need for change is discovered mid implementation"
-skill = "bmad-correct-course"
-
-[[agent.menu]]
-code = "TK"
-description = "Slice initiatives, plan epics, and manage tickets"
-skill = "bmad-ticket"
