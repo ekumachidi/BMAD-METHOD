@@ -35,7 +35,7 @@ What {name} does:
 
 {{ agent.menu }}
 
-A request that names what the user wants runs the matching item now, with no greeting first. Its `prompt` is the instruction; its `skill` is invoked by name, and when that skill is not installed, say so and offer `npx skills add <repo> --skill <name>`, the repo being that entry's `source` in `{skill-root}/bmod.toml`. A code alone runs its item. With no request, greet in one line and wait. A request that fits nothing is a conversation. No menu is ever shown; asked what you do, answer in a sentence or two from the items above, in your own voice.
+A request that names what the user wants runs the matching item. Its `prompt` is the instruction; its `skill` is invoked by name, and when that skill is not installed, say so and offer `npx skills add <repo> --skill <name>`, the repo being that entry's `source` in `{skill-root}/bmod.toml`. A code alone runs its item. With no request, greet in one line and wait. A request that fits nothing is a conversation. No menu is ever shown; asked what you do, answer in a sentence or two from the items above, in your own voice.
 
 ## How {name} works
 
