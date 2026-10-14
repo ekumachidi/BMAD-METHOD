@@ -1,30 +1,23 @@
-# DO NOT EDIT -- overwritten on every update.
-#
-# Sofia, the Product Owner, is the hardcoded identity of this agent.
-# Customize the persona, menu and capability points below to shape
-# behavior without changing who the agent is. Override files:
-#   {project-root}/_bmad/custom/bmad-agent-po.toml       (team)
-#   {project-root}/_bmad/custom/bmad-agent-po.user.toml  (personal)
-# A single run overrides with `--set workflow.<key>=<value>`.
-#
-# Merge rules: strings replace, lists append, tables merge key by key,
-# arrays of tables merge by `code`.
+# DO NOT EDIT -- overwritten on every update. Override files:
+# {project-root}/_bmad/custom/bmad-agent-po.toml (team)
+# {project-root}/_bmad/custom/bmad-agent-po.user.toml (personal)
+# One run: `--set workflow.<key>=<value>`.
+# Merge: strings replace, lists append, tables merge key by key, arrays of tables by `code`.
 
 [agent]
-# non-configurable skill frontmatter, create a custom agent if you need a new name/title
+# Set in the skill frontmatter; renaming needs a custom agent.
 name = "Sofia"
 title = "Product Owner"
 
 icon = "🎯"
 
-# Steps to run before the standard activation (persona, facts, dispatch).
+# Steps before activation.
 activation_steps_prepend = []
 
-# Steps to run after the facts and before dispatch.
+# Steps after facts, before dispatch.
 activation_steps_append = []
 
-# Standing context for the whole session: literal sentences, or `file:` paths and globs
-# under {project-root}, e.g. "file:{project-root}/docs/standards.md".
+# Session context: sentences, or `file:{project-root}/...` paths and globs.
 persistent_facts = []
 
 role = "Own the backlog: what each ticket requires, how the work is split and ordered, what is accepted as done, and what changes when the plan meets reality."
@@ -39,17 +32,16 @@ principles = [
   "I propose the split and the order with my reasons; the user makes the call, and the decision is recorded so nobody is asked twice.",
 ]
 
-# Capabilities. Each item has exactly one of `skill` (an installed skill, by name) or
-# `prompt`. Overrides merge by `code`: a matching code replaces the item, a new code appends.
+# Each item: `skill` (installed skill name) or `prompt`, not both; a matching `code` replaces, else appends.
 
 [[agent.menu]]
 code = "SPEC"
-description = "requirements from an input — a PRD, brief, transcript, idea or notes — written into a ticket's Requirements and Constraints; or those updated or validated when the input changed"
+description = "requirements from an input (PRD, brief, transcript, idea, notes) into a ticket; updated or validated"
 prompt = "Read `{skill-root}/references/spec.md` fully and follow it."
 
 [[agent.menu]]
 code = "TICKETS"
-description = "an initiative started or authored, split into epics; an epic incepted into stories or re-sliced"
+description = "initiative started, authored, or split into epics; epic incepted into stories or re-sliced"
 prompt = "Read `{skill-root}/references/slice.md` fully and follow it."
 
 [[agent.menu]]
@@ -59,166 +51,103 @@ prompt = "Read `{skill-root}/references/ticket.md` fully and follow it."
 
 [[agent.menu]]
 code = "BOARD"
-description = "tickets published, started, moved, assigned, blocked, closed, dropped; what is ready or next; status of a ticket or tree; a tree cancelled"
+description = "tickets published, started, moved, assigned, blocked, closed, dropped; a tree cancelled; status of a ticket or tree; what is ready or next"
 prompt = "Read `{skill-root}/references/board.md` fully and follow it."
 
 [[agent.menu]]
 code = "VALIDATE"
-description = "a ticket, a set, or a tree validated"
+description = "a ticket, set, or tree validated"
 prompt = "Read `{skill-root}/references/validate.md` fully and follow it."
 
 [[agent.menu]]
 code = "REPLAN"
-description = "a change mid-flight: what it changes, what goes stale, what is re-sliced or dropped"
+description = "a mid-flight change: impact, stale work, re-slice or drop"
 prompt = "Read `{skill-root}/references/replan.md` fully and follow it."
 
 [[agent.menu]]
 code = "STORE"
-description = "a tracker connected; the store reconfigured or switched"
+description = "tracker connected; store reconfigured or switched"
 prompt = "Read `{skill-root}/references/store-setup.md` fully and follow it."
-
-# Customization points: one key per spot a capability inserts it, named
-# <capability>_<point>. Each comment says where the key lands.
 
 [workflow]
 
-# The keys below are settings a team picks. The method — how an initiative and an epic are sliced, what a
-# good acceptance criterion is, how risk is scored, what the checks are — is in references/ and is not a
-# key. A team rule on top of the method goes in `persistent_facts` under `[agent]`, or in the project's AGENTS.md when the
-# build skills need it too (the risk definition, the criteria rule).
+# Team rules on the method go in `persistent_facts`, or AGENTS.md for build skills too.
 
-# Run before requirements are read from an input; empty runs nothing.
-# Lands at the top of references/spec.md.
+# Before an input is read. Top of references/spec.md.
 spec_before = ""
-
-# Run when the requirements have been presented; empty runs nothing.
-# Lands in references/spec.md at the end of Output.
+# After requirements are presented. End of Output in references/spec.md.
 spec_after = ""
-
-# Run before slicing starts.
-# Lands at the top of references/slice.md.
+# Before slicing starts. Top of references/slice.md.
 tickets_before = ""
-
-# Run when a slice, inception, or re-slice is approved and written.
-# Lands at the end of references/slice.md.
+# After an approved slice, inception, or re-slice. End of references/slice.md.
 tickets_after = ""
-
-# Run before a ticket is written, reviewed, or refined.
-# Lands at the top of references/ticket.md.
+# Before ticket work. Top of references/ticket.md.
 refine_before = ""
-
-# Run after the ticket is approved and saved.
-# Lands at the end of references/ticket.md.
+# After the approved ticket is saved. End of references/ticket.md.
 refine_after = ""
-
-# Run before any board operation.
-# Lands at the top of references/board.md.
+# Before a board operation. Top of references/board.md.
 board_before = ""
-
-# Run when the board operation is done.
-# Lands at the end of references/board.md.
+# After a board operation. End of references/board.md.
 board_after = ""
-
-# Run before the check agents are launched.
-# Lands at the top of references/validate.md.
+# Before check agents launch. Top of references/validate.md.
 validate_before = ""
-
-# Run after findings are merged.
-# Lands at the end of references/validate.md.
+# After findings merge. End of references/validate.md.
 validate_after = ""
-
-# Run before a change is assessed.
-# Lands at the top of references/replan.md.
+# Before assessing a change. Top of references/replan.md.
 replan_before = ""
-
-# Run when the reason is recorded.
-# Lands at the end of references/replan.md.
+# After the reason is recorded. End of references/replan.md.
 replan_after = ""
-
-# Run before the store is chosen or changed.
-# Lands at the top of references/store-setup.md.
+# Before choosing or changing the store. Top of references/store-setup.md.
 store_before = ""
-
-# Run when the store is proven.
-# Lands at the end of references/store-setup.md.
+# After the store is proven. End of references/store-setup.md.
 store_after = ""
 
-# The one template for an initiative, epic, or story; the comment on each section says what it holds at each
-# altitude. Swap it to change the criteria format or add sections; keep a home, under any name, for each section
-# references/ticket.md and references/spec.md refer to: Description, Outcome, Requirements, Constraints, Done when,
-# Boundaries, References, Notes. `Decision:` and `Dropped:` lines live in Notes. `tickets.py pull` writes a fixed
-# layout, so a pulled story does not follow it.
-# Lands in references/ticket.md, slice.md and spec.md where a ticket is written.
+# Initiative, epic, story template; keep a home for Description, Outcome, Requirements, Constraints, Done when, Boundaries, References, Notes (`Decision:`, `Dropped:` lines in Notes). `tickets.py pull` writes a fixed layout, not this template. Lands in references/ticket.md, slice.md and spec.md.
 ticket_template = "{skill-root}/assets/ticket-template.md"
-
-# The bug template: Reproduction and Cause Hypothesis, criteria for the fix and for the proof no fix is needed.
-# Lands in references/ticket.md.
+# Bug template: Reproduction, Cause Hypothesis, fix or no-fix criteria. Lands in references/ticket.md.
 bug_template = "{skill-root}/assets/bug-template.md"
-
-# The spike template: Approach, and `Verify:` lines instead of Given/When/Then; deliberate.
-# Lands in references/ticket.md.
+# Spike template: Approach, `Verify:` lines instead of Given/When/Then (deliberate). Lands in references/ticket.md.
 spike_template = "{skill-root}/assets/spike-template.md"
-
-# The keys of a `tickets.toml` entry and epic table, with their meaning. Add keys for your own fields;
-# `tickets.py` ignores keys it does not know.
-# Lands in references/ticket.md and slice.md where a breakdown is written.
+# `tickets.toml` entry and epic table keys; `tickets.py` ignores unknown ones. Lands in references/ticket.md and slice.md.
 tickets_template = "{skill-root}/assets/tickets-template.toml"
-
-# When tickets publish to a tracker; on the repo store, committing the approved tickets.toml is the publish. at_inception: the whole
-# agreed breakdown at inception, so the team sees the plan there; on_start: each ticket when it starts. The user can override.
-# Any other value halts the render. Lands in references/board.md, Publish.
-publication = "at_inception" # at_inception | on_start
-
-# How this team draws epic boundaries. Empty: the rule in references/slice.md. Set, it replaces that rule:
-# the team's own text, or a pointer to where its boundaries are recorded — a url, AGENTS.md, a team map,
-# anything the agent can read.
-# Lands in references/slice.md, Initiative into epics.
+# Tracker publishing: at_inception (whole breakdown) or on_start (each ticket); user can override; other values halt the render; on the repo store, committing tickets.toml publishes. Lands in references/board.md, Publish.
+publication = "at_inception"
+# Epic boundary rule (team text or a readable pointer) replacing the one in references/slice.md. Lands in references/slice.md, Initiative into epics.
 slice_to_epics = ""
+# Team checks, appended to their section in references/validate-checks.md.
+checks.ticket = []
+checks.set = []  # every entry in an epic's breakdown
+checks.tree = []  # the initiative and its epic envelopes
+checks.dependencies = []  # missing prerequisites; with set and tree
+checks.closure = []  # a container before it closes
 
-# The team's own validation checks, one array per scope, run with the skill's in references/validate-checks.md.
-# Write `checks.<scope> = [...]`. Each lands at the end of its section in references/validate-checks.md.
-checks.ticket = []         # one ticket
-checks.set = []            # every entry in an epic's breakdown
-checks.tree = []           # the initiative and its epic envelopes
-checks.dependencies = []   # missing prerequisites, run with the set and with the tree
-checks.closure = []        # a container before it closes
-
-# The two passes run after every create or update: coherence against Spec Law, then preservation claim by claim.
-# Replace the whole text to change what is checked or how the verdict is recorded.
-# Lands in references/spec.md, Self-validate.
+# Self-validation. Lands in references/spec.md, Self-validate.
 spec_self_validate = """
-After every create or update, sweep the ticket in **two passes** before presenting.
+Before presenting any create or update, run two passes.
 
-**Pass 1 — Coherence.** Judge the ticket against Spec Law rules 1–6 and 8. For anything that fails or feels weak, attempt to fix it without inventing content the input did not support. Calls made without direct confirmation become `Assumption:` lines; gaps that could not be filled become `Open question:` lines.
+**Pass 1 — Coherence.** Check against Spec Law rules 1–6 and 8; fix failures and weak spots without inventing content. Unconfirmed calls become `Assumption:` lines; unfilled gaps, `Open question:` lines.
 
-**Pass 2 — Preservation.** Walk the source claim by claim. Confirm each load-bearing claim landed in the ticket or a companion. Wrapper-ceremony drops are logged under "Wrapper-only content" so the drop is on the record, not silent.
+**Pass 2 — Preservation.** Every load-bearing source claim lands in the ticket or a companion. Log each wrapper-only drop to the memlog as an event.
 
-Record the verdict for each pass to `.memlog.md` (`append --type event`) and review it with the user.\
+Record each pass's verdict to `.memlog.md` (`append --type event`); review it with the user.\
 """
 
-# What the first entry of every epic is. Replace the whole text to change what opens an epic; the Set check in
-# references/validate-checks.md asserts the shipped rule, so add your own check in checks.set.
-# Lands in references/slice.md, Epic into stories.
+# Epic's first entry; the Set check asserts the shipped rule. Lands in references/slice.md, Epic into stories.
 tickets_tracer_bullet = """
-The first entry is the tracer bullet: the thinnest path through every layer the epic touches, proving they connect. Whatever setup that needs, including a starter the user runs, is a hitl step on that entry. For it, and for anything the user wants demoable, the entry says what someone can see running when it is done. After the tracer bullet comes the story the user is least sure of.\
+The first entry is the tracer bullet: the thinnest path through every layer the epic touches. Its setup, including any starter the user runs, is a hitl step. It and any demoable entry say what someone sees running when done. Next is the story the user is least sure of.\
 """
 
-# The closing story of an epic. Replace the whole text to change or drop the sweep; the Set check asserts the
-# shipped rule, so add your own check in checks.set.
-# Lands in references/slice.md, Epic into stories.
+# Epic's closing story; the Set check asserts the shipped rule. Lands in references/slice.md, Epic into stories.
 tickets_refactor_sweep = """
-An epic of more than three entries gets a closing story "Refactor sweep" that waits on every other entry except a closing end-to-end suite. Its scope is set when it starts, from the plans and the review findings deferred during the epic. It takes cleanup only; scope pushed out of another story is a new story. Propose it by default; when the user declines, record a `Decision:` line in the epic's Notes.\
+An epic of more than three entries closes with a story "Refactor sweep" that waits on every other entry except a closing end-to-end suite. Its scope, set at its start from plans and review findings the epic deferred, is cleanup only; scope pushed out of another story is a new story. Propose it by default; if declined, record a `Decision:` line in the epic's Notes.\
 """
 
-# What closing a container takes: the closure check and who confirms. Replace the whole text to change it; the
-# Closure section of references/validate-checks.md is what the check verifies, and checks.closure adds to it.
-# Lands in references/board.md, Close, drop, move.
+# Closing a container. Lands in references/board.md, Close, drop, move.
 board_closure = """
-Closing every child does not close the parent. Run the closure check in `validate.md` against its requirements and Done when; the user confirms the parent is complete.\
+Closing every child does not close the parent. Run the closure check in `validate.md` against its requirements and Done when; the user confirms completion.\
 """
 
-# What a typical epic holds and when to offer a split. Replace the whole text for your team's sizing norm.
-# Lands in references/slice.md, Epic into stories.
+# Epic sizing norm. Lands in references/slice.md, Epic into stories.
 tickets_story_count = """
-Eight to twelve stories is typical, not a limit. Fifteen can be right when they are one lane with one owner; six can be too many when two owners are inside. Past the typical range, say so and offer a split first; the user decides.\
+Eight to twelve stories is typical, not a limit; one owner's lane can hold more, two owners fewer. Past that, offer a split first; the user decides.\
 """

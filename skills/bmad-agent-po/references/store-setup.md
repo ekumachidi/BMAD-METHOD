@@ -1,18 +1,18 @@
 # Setting up the store
 
-The store config is two layers that `{skill-root}/scripts/read_store.py` reads as one. The base is the skill's starter for the store, `{skill-root}/config/<store>-ticketing.toml`, which updates with the skill. Over it goes the project's file, `{project-root}/_bmad/custom/ticketing-store-config.toml`: it names the store and holds only what this project sets, and a key it sets replaces the starter's. With no project file the store is the repo store, and nothing needs setting up.
+`{skill-root}/scripts/read_store.py` layers the project file `{project-root}/_bmad/custom/ticketing-store-config.toml` over the starter `{skill-root}/config/<store>-ticketing.toml`; the project file's keys win. No project file means the repo store.
 
-Run this when the user wants a tracker connected or the store reconfigured or switched.
+Run this to connect, reconfigure, or switch a tracker.
 
 {{ workflow.store_before }}
 
-1. **Choose.** `uv run {skill-root}/scripts/read_store.py --starters` lists the shipped stores with a description of each. Every hosted one has a free tier; choosing it costs an account setup, or only the config when the user already has an account. The user may also bring a config of their own, as a file or a url.
-2. **Write the project file.** `[tickets]` with `store` and the address fields the starter leaves empty — key, repo, site, team, database, board — filled from the user's answers; the comments in the starter file say what each one is. Copy nothing else from the starter: a key the project file leaves out follows the skill as it updates. A project file that is a whole copy of a starter predates this layout: cut it down to `store`, the address fields, and what the team changed. A config the user brings goes into the project file whole; so does a store with no starter, modelled on the nearest one. For the repo store, delete the project file.
-3. **Connect.** Offer to run the store's `setup` verb: tool install, auth, and the labels, lists, statuses, or properties the maps name. Where the tracker's types or statuses differ from the starter's maps, set those entries under `[tickets.types]` or `[tickets.status]` in the project file. A state the tracker has no status for takes the status of the state before it, never an empty value: with no review status, `review` takes the in-progress one.
-4. **Prove it.** Offer a test. A store that already has items: `query` a few back — that proves auth, the maps, and the path back. An empty store: create one ticket in `backlog/` titled "BMad setup test — safe to delete" and prove `write` and `query`: create it, query it back, move it to `in-progress`, assign it, then drop it. Give the user the `remote` url so they can watch the item and its history.
+1. **Choose.** `uv run {skill-root}/scripts/read_store.py --starters` lists the shipped stores. Tell the user every hosted one has a free tier and costs only an account setup, or nothing with an existing account. The user may bring their own config file or url.
+2. **Write the project file.** `[tickets]` with `store` and the starter's empty address fields, asked of the user. Copy nothing else from the starter; cut a whole-starter copy down to `store`, the address fields, and the team's changes. The user's own config goes in whole; a store with no starter is modelled on the nearest one. For the repo store, delete the project file.
+3. **Connect.** Offer to run the store's `setup` verb. Tracker types or statuses that differ from the maps go under `[tickets.types]` or `[tickets.status]`. A state with no tracker status takes the previous state's status.
+4. **Prove it.** Offer a test. With items, `query` a few back. Empty: create a ticket in `backlog/` titled "BMad setup test — safe to delete", query it back, move it to `in-progress`, assign it, then drop it. Give the user the `remote` url.
 
-A house rule on top of a verb, such as a label every new issue takes, goes in `persistent_facts` in this skill's customization. Set a whole verb under `[verbs]` in the project file only when the store's commands differ, because a replaced verb no longer follows the skill.
+A house rule on a verb goes in `persistent_facts` in this skill's customization; set a whole verb under `[verbs]` in the project file only when the store's commands differ.
 
-Then go on with what the user came to do. When that is done, offer once a `bmad-customize` pass on this skill: its `customize.toml` holds the team's epic boundary rule, publication timing, own checks, templates, and a before and after instruction per capability.
+Then return to the user's task; when done, offer once a `bmad-customize` pass on this skill: its `customize.toml` holds the epic boundary rule, publication timing, own checks, templates, and before and after instructions.
 
 {{ workflow.store_after }}

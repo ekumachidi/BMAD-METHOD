@@ -1,75 +1,65 @@
 # Validation checks
 
-One section per scope. `validate.md` says which sections an agent runs and what it is given.
+`validate.md` assigns sections to agents.
 
 ## Ticket
 
-- Every file or link referenced exists and opens; no unfilled placeholder; every assumption is marked.
-- Nothing contradicts the requirement source, its companions, the architecture, or a recorded decision.
-- An entry has a description, known uncertainty, and a `verify` check someone other than the builder can run. Full criteria are required before execution only for a bug, an entry with `refine = true`, and a ticket with no epic.
-- A ticket that needs full criteria and whose `covers` includes an id named in a `Source conflict:` line with no later `Decision:` settling it has `refined: false`.
+- References open; no unfilled placeholders; assumptions marked.
+- Nothing contradicts the source, its companions, the architecture, or a recorded decision.
+- Each entry has a description, `unknown` when one is known, and a `verify` a non-builder can run; only bugs, `refine = true` entries, and epic-less tickets need full criteria before execution.
+- A ticket needing full criteria and covering an id in a `Source conflict:` line with no later `Decision:` has `refined: false`.
 
 {% if workflow.checks.ticket %}
-The team's own checks:
-
 {{ workflow.checks.ticket }}
 {% endif %}
 
 ## Set
 
-The set is every entry in the epic's `tickets.toml` or draft breakdown, pulled or not.
+Every entry in the epic's `tickets.toml` or draft breakdown, pulled or not.
 
-- Together the tickets account for every line in the epic's Requirements, except scope deferred with the user. Each `covers` id exists there; several tickets may cover one id, each description saying which part it delivers.
-- UX, architecture, constraints, and integration work are accounted for even when they lack ids. The combined results must satisfy the epic's Done when; citing an id alone is not coverage.
-- Every `after` is a real prerequisite, those in other epics included, and none restates the order. Once `tickets.toml` exists, `tickets.py status` on the epic runs clean: no cycle, no `drift`, no `unpinned_after`, `undeclared_after`, or `order_conflict`. The tracer bullet (the first entry: the thinnest path through every layer the epic touches) and the sequencing decisions are in the epic's Notes.
-- Given the epic, an entry, and its references, a builder could write that story's acceptance criteria if it had to. If it could not, fix the epic's requirements or the references; the entry stays one sentence each for `description` and `verify`.
-- An epic of more than three entries closes with a "Refactor sweep" story that waits on every other entry except a closing end-to-end suite, or a `Decision:` line says why not.
+- Tickets cover every Requirements line not deferred with the user; each `covers` id exists there; tickets sharing an id say which part each delivers.
+- UX, architecture, constraint and integration work is covered without ids; results satisfy Done when; citing an id alone is not coverage.
+- Every `after`, cross-epic too, is a real prerequisite, not restated order; once `tickets.toml` exists, `tickets.py status` on the epic shows no cycle, `drift`, `unpinned_after`, `undeclared_after`, or `order_conflict`; the epic's Notes hold the tracer bullet (the first entry) and sequencing decisions.
+- A builder could write each story's acceptance criteria from the epic, entry, and references; if not, fix the epic, not the one-sentence `description` and `verify`.
+- An epic of over three entries ends with a "Refactor sweep" story after all but a closing end-to-end suite, or a `Decision:` line says why not.
 
 {% if workflow.checks.set %}
-The team's own checks:
-
 {{ workflow.checks.set }}
 {% endif %}
 
 ## Tree
 
-The tree is the initiative and its epic envelopes, drafted or written.
+The initiative and its epic envelopes, drafted or written.
 
-- Every initiative requirement has an accountable epic or an agreed deferral. Shared requirements say which part each epic delivers; no unexplained overlap.
-- Each epic's `covers` cites parent ids, and each of its Requirements lines names in parentheses the parent id it maps to or, for a line the parent does not have, the source section; a child's `covers` resolves through that line to a parent id. An epic with empty `covers`, such as the platform baseline, names a source section on every line. Verify the map resolves; a non-empty `covers` is not coverage.
-- Every source id a Requirements line names exists in the file its References or `sources:` name, and every parent id exists in the parent's Requirements; a line naming an id its source lacks fails.
-- Every unit the source touches is an epic, a touch point (a unit the work only consumes or configures, named in the initiative's Boundaries with the epic that owns the work there), or named out of scope.
-- Every decision two or more epics must adopt has one home: a spine section, or an entry in the opening epic (the first `[[epic]]`) that the others wait on.
-- Every epic envelope has Outcome, Done when, boundaries, upstream coverage, and references; a future epic needs no breakdown; its Requirements are the parent ids it owns. The initiative's `tickets.toml` lists every epic in build order, and each `after` names what is needed and from which epic. It opens with a platform-baseline epic (scaffold, environments, CI, deployment, operations), or a `Decision:` line says why not. Each epic's Done when includes production delivery.
+- Every initiative requirement has an accountable epic or agreed deferral; shared ones say which part each epic delivers; no unexplained overlap.
+- Each epic's `covers` cites parent ids; each Requirements line names in parentheses its parent id, or its source section if the parent lacks it; a child's `covers` resolves through the Requirements line to a parent id.
+- Every source id on a Requirements line exists in its References or `sources:` file, every parent id in the parent's Requirements.
+- Every unit the source touches is an epic, out of scope, or a touch point (consumed or configured only, named in the initiative's Boundaries with its owner).
+- Each decision several epics adopt has one home: an architecture spine section, or an opening-epic entry (first `[[epic]]`) the others wait on.
+- Every epic envelope has Outcome, Done when (including production delivery), boundaries, upstream coverage, and references; a future epic needs no breakdown, its Requirements being the parent ids it owns; the initiative's `tickets.toml` lists every epic in build order, each `after` naming what it needs, opening with a platform-baseline epic or a `Decision:` line saying why not.
 - With epics, no leaf sits directly under the initiative.
 
 {% if workflow.checks.tree %}
-The team's own checks:
-
 {{ workflow.checks.tree }}
 {% endif %}
 
 ## Dependencies
 
-Missing prerequisites, run with the set and with the tree. An item is an entry in the set and an epic in the tree; a prerequisite is an `after` on either.
+An item is a set entry or tree epic.
 
-- Needs: list what must exist before each item can start and before its check can run: code, schema, setup, test tooling, fixtures, an entry point, a decision, an investigation's answer. The item builds it itself, or something in its `after` delivers it.
-- Collisions: two items with no dependency path between them can run at the same time, so they share no code, config, schema, or setup. Where they would, one goes in the other's `after` or they merge.
-- Shared setup: whatever more than one item needs (test harness, scaffold, schema, a shared component or contract, an integration) has one owner, the earliest item that needs it, and the others list it in `after`.
-- Handoffs: where one item relies on another's output (a default, an interface, a link target), both descriptions say so, so neither builder invents its own.
+- Needs: what each item needs to start and to run its check is built by it or its `after`.
+- Collisions: items with no dependency path share no code, config, schema, or setup; else add an `after` or merge them.
+- Shared setup: the earliest item needing it owns it; others list it in `after`.
+- Handoffs: when one item relies on another's output, both descriptions say so.
 
 {% if workflow.checks.dependencies %}
-The team's own checks:
-
 {{ workflow.checks.dependencies }}
 {% endif %}
 
 ## Closure
 
-- Verify the container's Done when against implementation evidence and its requirements, including constraints and companions. All known children done is evidence, not proof the parent is complete; explain any dropped work and confirm remaining scope with the user.
+- Verify the container's Done when, requirements, constraints and companions against implementation evidence, not child status; explain dropped work and confirm remaining scope with the user.
 
 {% if workflow.checks.closure %}
-The team's own checks:
-
 {{ workflow.checks.closure }}
 {% endif %}
