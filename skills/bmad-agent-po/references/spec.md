@@ -23,7 +23,7 @@ Inside the ticket's folder:
 
 `.memlog.md` is append-only, one line per entry; requirements carry their stable `R<n>`. Each run derives the Requirements and Constraints sections, the `Assumption:` and `Open question:` lines, and every spec-authored companion from the memlog plus the sources it cites.
 
-SPEC is the only writer of those sections; a change goes to the memlog, never into them by hand. A derive replaces exactly those sections and lines, adds a References line per companion, and touches nothing else.
+SPEC is the only writer of those sections; a change goes to the memlog, never into them by hand. A derive replaces exactly those sections and lines, sets `sources:` and `companions:` in the frontmatter, adds a References line per companion, and touches nothing else.
 
 Writes go through `{project-root}/_bmad/scripts/memlog.py` (never read it back except to resume):
 
@@ -33,7 +33,7 @@ Writes go through `{project-root}/_bmad/scripts/memlog.py` (never read it back e
 
 ## The Operation
 
-Read the input and what it links. With a `.memlog.md`, this is an update: read the memlog, the authority on decisions and requirement ids; preserve them and give new requirements the next unused `R<n>`. A ticket with Requirements lines and no memlog is also an update: `memlog.py init`, then append each existing Requirements, Constraints, `Assumption:` and `Open question:` line as its own entry, ids kept. Otherwise this is a create. An epic whose only input is its parent's lines (the ids its `covers` names) gets one line per parent id, `R<n> (parent R<m>)`, in the parent's words, with no elicitation, self-validate or memlog; when the parent changes, its lines are re-rendered from the parent, ids kept.
+Read the input and what it links. With a `.memlog.md`, this is an update: read the memlog, the authority on decisions and requirement ids, and re-read every file in `sources:`; preserve the ids and give new requirements the next unused `R<n>`. A ticket with Requirements lines and no memlog is also an update: `memlog.py init`, then append each existing Requirements, Constraints, `Assumption:` and `Open question:` line as its own entry, ids kept. Otherwise this is a create. An epic whose only input is its parent's lines (the ids its `covers` names) gets one line per parent id, `R<n> (parent R<m>)`, in the parent's words, with no elicitation, self-validate or memlog; when the parent changes, its lines are re-rendered from the parent, ids kept.
 
 Pre-sorted input (a PRD, a brief from an upstream BMad skill): keep its separation; lift each requirement and constraint into its line with the source's id in parentheses (`R1 (FR-2, FR-5)`), overflow into companions. Mixed input: sort each claim by the test in Load-bearing into a Requirements or Constraints line or a companion.
 
@@ -41,7 +41,7 @@ The template's comments say what Requirements and Constraints hold at this altit
 
 An unaddressed domain implication (healthcare silent on PHI) becomes an `Open question:` line; never invent the answer. If these dominate, the input is too thin; suggest `bmad-prd`.
 
-A later memlog entry supersedes an earlier one. When live sources disagree, or an either/or was never resolved, ask the user; the answer is a new memlog entry.
+A later memlog entry supersedes an earlier one. A new input, or a source changed since the memlog last cited it, is read against the memlog and the other sources; each disagreement, and any either/or never resolved, is put to the user as fix (a new memlog entry, the lines re-derived) or ignore (a `Decision:` line in Notes), never settled silently.
 
 If the input is too thin to distill, stop and suggest `bmad-prd`. This capability distills; it does not coach.
 
@@ -54,7 +54,7 @@ A claim is **load-bearing** if any consumer (downstream skill, implementing agen
 Load-bearing content that needs more than one line (tables, diagrams, long reference material) goes in a companion; a line growing sub-bullets wants one.
 
 - **Spec-authored** companions sit beside the ticket, named for their content; SPEC may edit them on update.
-- **Adopted** companions (upstream artifacts such as `DESIGN.md`, pre-existing project docs) keep their names; SPEC lists them by relative path and never edits or duplicates them.
+- **Adopted** companions (upstream artifacts such as `DESIGN.md`, pre-existing project docs) keep their names; SPEC lists them in `companions:` and never edits or duplicates them.
 
 Diagrams always go in a companion; the ticket holds prose only.
 
@@ -91,6 +91,7 @@ Append every later change to these sections to `.memlog.md`. When a change overr
 
 ## References and sources
 
-- A companion is a References line, `type — location`, the type naming its content; the location may be beside the ticket or outside it (`../ux-foo-bar/DESIGN.md`).
-- `sources:` in the frontmatter lists files fully absorbed into Requirements, re-read on update; files downstream still needs go in References.
+- `sources:` in the frontmatter lists every input the Requirements were derived from, paths from `{project-root}`; each is re-read on update, and a source id on a Requirements line must exist in one of them.
+- `companions:` in the frontmatter lists every file downstream reads beside the ticket, spec-authored or adopted, paths from `{project-root}`; a file may be in both lists.
+- Each companion is also a References line, `type — location, section`, the type naming its content; the location may be beside the ticket or outside it.
 - Do not list the memlog, README files, organizational artifacts, or upstream process records.

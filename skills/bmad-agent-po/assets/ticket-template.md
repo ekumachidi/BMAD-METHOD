@@ -6,7 +6,8 @@ type: [initiative | epic | story]
 title: "[Container: its outcome. Story: what works when done]"
 parent: [the container folder above; none for an initiative or a backlog/ story]
 covers: [epic: parent ids it owns; story: epic ids it serves; cut on an initiative. Constraints go in References, not here]
-sources: []   # files SPEC fully absorbed into Requirements; re-read on update, not downstream; never the memlog
+sources: []   # every input SPEC derived Requirements from, paths from {project-root}; each is re-read on update; never the memlog
+companions: []   # files downstream reads beside this ticket, written or adopted by SPEC, paths from {project-root}
 after: []   # container: epics it waits on; epic order is in tickets.toml. Story: prerequisites only: sibling id, "<epic id>.<entry id>", or epic-<slug>
 assignee: ""   # container: gains status (in-progress | done | dropped) at work start. Story: only a tracker's, via `tickets.py mirror`
 # a story's status, assignee, blocked_at, blocked_reason live in the plan beside this file, not here; tracker_status from tracker sync
@@ -54,7 +55,7 @@ risk: [low|medium|high; container: a best guess until sliced, then its children'
 
 ## References
 
-[`type — location, section`, location a path from {project-root} or a url. A line per companion SPEC writes or adopts, typed by content (glossary, design, architecture, prd). Initiative: sources downstream still needs; absorbed ones are in `sources:`. Epic: the parent's Requirements, then the architecture spine section and design it adopts. Story: the parent, plus what the epic's lack.]
+[`type — location, section`, location a path from {project-root} or a url. A line per companion SPEC writes or adopts, typed by content (glossary, design, architecture, prd). Initiative: section pointers into its sources and companions. Epic: the parent's Requirements, then the architecture spine section and design it adopts. Story: the parent, plus what the epic's lack.]
 
 - parent — [path or url, section Requirements]
 - [companion — a file beside this one, named for its content]

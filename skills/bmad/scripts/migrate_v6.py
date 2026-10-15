@@ -483,12 +483,20 @@ def fold_spec(project_root: Path, store: Path, folder: Path) -> dict[str, object
 
     references, unresolved = companion_references(spec["companions"], folder, home, project_root, store)
     sources = [rebase(item, folder, home, project_root, store) for item in spec["sources"]]
+    companions = [companion_path(item, folder, home, project_root, store) for item in spec["companions"]]
     requirements = own_lines + [f"- {ids[f'CAP-{n}']} (CAP-{n}): {line}" for n, line in spec["capabilities"].items()]
     if loose:
-        text = story_text(spec, home, slug, requirements, references, sources)
+        text = story_text(spec, home, slug, requirements, references, sources, companions)
     else:
         text = folded_ticket_text(
-            ticket.read_text(encoding="utf-8"), ticket, spec, requirements, references, sources, replace_requirements
+            ticket.read_text(encoding="utf-8"),
+            ticket,
+            spec,
+            requirements,
+            references,
+            sources,
+            companions,
+            replace_requirements,
         )
     home.mkdir(parents=True, exist_ok=True)
     write_text(ticket, text)
@@ -701,6 +709,7 @@ def folded_ticket_text(
     requirements: list[str],
     references: list[str],
     sources: list[str],
+    companions: list[str],
     replace_requirements: bool,
 ) -> str:
     meta, body = split_frontmatter(text)
@@ -727,26 +736,37 @@ def folded_ticket_text(
         [f"- Assumption: {line}" for line in spec["assumptions"]]
         + [f"- Open question: {line}" for line in spec["questions"]],
     )
-    meta = with_sources(meta, sources)
+    meta = with_list(meta, "sources", sources)
+    meta = with_list(meta, "companions", companions)
     if any(re.match(r"\Atype\s*:\s*initiative\b", line) for line in meta):
         meta = [line for line in meta if not re.match(r"\Acovers\s*:", line)]
     front = "---\n" + "\n".join(meta) + "\n---\n" if meta else ""
     return front + join_sections(head, sections)
 
 
-def with_sources(meta: list[str], sources: list[str]) -> list[str]:
-    if not sources:
+def with_list(meta: list[str], key: str, items: list[str]) -> list[str]:
+    """The frontmatter with `key` holding its existing items plus `items`, the line added after `sources:` or at the end."""
+    if not items:
         return meta
-    index = next((i for i, line in enumerate(meta) if re.match(r"\Asources\s*:", line)), None)
-    merged = list(dict.fromkeys((frontmatter_list(meta, "sources") if index is not None else []) + sources))
-    line = f"sources: [{', '.join(merged)}]"
-    if index is None:
+    index = next((i for i, line in enumerate(meta) if re.match(rf"\A{key}\s*:", line)), None)
+    merged = list(dict.fromkeys((frontmatter_list(meta, key) if index is not None else []) + items))
+    line = f"{key}: [{', '.join(merged)}]"
+    if index is not None:
+        return [*meta[:index], line, *meta[index + 1 :]]
+    after = next((i for i, line in enumerate(meta) if re.match(r"\Asources\s*:", line)), None)
+    if after is None or key == "sources":
         return [*meta, line]
-    return [*meta[:index], line, *meta[index + 1 :]]
+    return [*meta[: after + 1], line, *meta[after + 1 :]]
 
 
 def story_text(
-    spec: dict, home: Path, slug: str, requirements: list[str], references: list[str], sources: list[str]
+    spec: dict,
+    home: Path,
+    slug: str,
+    requirements: list[str],
+    references: list[str],
+    sources: list[str],
+    companions: list[str],
 ) -> str:
     used = [
         int(match.group(1))
@@ -771,6 +791,7 @@ def story_text(
         "parent: none",
         "covers: []",
         f"sources: [{', '.join(sources)}]",
+        f"companions: [{', '.join(companions)}]",
         "after: []",
         "refined: false",
         "hitl: false",
@@ -809,6 +830,18 @@ def companion_references(
         kind = COMPANION_TYPES.get(target.name) or re.split(r"[-_.]", target.stem, maxsplit=1)[0].lower() or "companion"
         lines.append(f"- {kind} — {rebase(item, folder, home, project_root, store)}")
     return lines, unresolved
+
+
+def companion_path(item: str, folder: Path, home: Path, project_root: Path, store: Path) -> str:
+    """The companion as `companions:` lists it: a path from the project root when it resolves there, else as rebased."""
+    target = resolve_companion(item, folder, project_root, store)
+    if target is None:
+        return item
+    if target.parent == folder:
+        target = home.resolve() / target.name
+    if target.is_relative_to(project_root.resolve()):
+        return target.relative_to(project_root.resolve()).as_posix()
+    return rebase(item, folder, home, project_root, store)
 
 
 def resolve_companion(item: str, folder: Path, project_root: Path, store: Path) -> Path | None:

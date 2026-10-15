@@ -444,7 +444,12 @@ class FoldSpecsTests(unittest.TestCase):
         )
         text = (epic / "epic-ball.md").read_text(encoding="utf-8")
         self.assertIn("covers: [R2]\nafter: []", text)
-        self.assertIn("sources: [_bmad-output/initiative-golf/prd-golf/prd-golf.md]\n---", text)
+        self.assertIn(
+            "sources: [_bmad-output/initiative-golf/prd-golf/prd-golf.md]\n"
+            "companions: [_bmad-output/initiative-golf/epic-ball/glossary.md, "
+            "_bmad-output/initiative-golf/ux-golf/DESIGN.md]\n---",
+            text,
+        )
         self.assertIn(
             "## Requirements\n\n"
             "- R1 (CAP-1): A player sees the ball follow a physically plausible arc. "
@@ -558,7 +563,8 @@ class FoldSpecsTests(unittest.TestCase):
         text = story.read_text(encoding="utf-8")
         self.assertTrue(
             text.startswith(
-                '---\nid: 5\ntype: story\ntitle: "Caddie advice"\nparent: none\ncovers: []\nsources: []\nafter: []\n'
+                '---\nid: 5\ntype: story\ntitle: "Caddie advice"\nparent: none\ncovers: []\nsources: []\n'
+                "companions: [_bmad-output/backlog/notes.md]\nafter: []\n"
                 "refined: false\nhitl: false\nrisk: low\n---\n\n# Caddie advice\n\n## Description\n\n"
                 "Players leave when the ball flies wrong.\n\n## Requirements\n\n- R1 (CAP-1): "
             ),

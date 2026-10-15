@@ -33,7 +33,7 @@ The initiative and its epic envelopes, drafted or written.
 
 - Every initiative requirement has an accountable epic or agreed deferral; shared ones say which part each epic delivers; no unexplained overlap.
 - Each epic's `covers` cites parent ids; each Requirements line names in parentheses its parent id, or its source section if the parent lacks it; a child's `covers` resolves through the Requirements line to a parent id.
-- Every source id on a Requirements line exists in its References or `sources:` file, every parent id in the parent's Requirements.
+- Every source id on a Requirements line exists in a `sources:` file, every parent id in the parent's Requirements; every adopted design or architecture document is in `companions:`.
 - Every unit the source touches is an epic, out of scope, or a touch point (consumed or configured only, named in the initiative's Boundaries with its owner).
 - Each decision several epics adopt has one home: an architecture spine section, or an opening-epic entry (first `[[epic]]`) the others wait on.
 - Every epic envelope has Outcome, Done when (including production delivery), boundaries, upstream coverage, and references; a future epic needs no breakdown, its Requirements being the parent ids it owns; the initiative's `tickets.toml` lists every epic in build order, each `after` naming what it needs, opening with a platform-baseline epic or a `Decision:` line saying why not.
