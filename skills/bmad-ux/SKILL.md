@@ -26,7 +26,7 @@ When Foundation names a UI system (shadcn, MUI, native UIKit, Compose, internal 
 
 ## Sources
 
-UX may lead, follow, or stand alone. Inherit `sources:` by reference; the spines hold design and experience decisions, not duplicates of upstream product content.
+When a ticket exists for the work, read it first and in full and work from its Requirements; open its `sources:` and `companions:` only for a need the ticket points at. With no ticket, UX may lead or stand alone. DESIGN.md and EXPERIENCE.md hold design and experience decisions, not duplicates of upstream product content.
 
 ## On Activation
 
@@ -48,7 +48,7 @@ Activation is complete. If `activation_steps_prepend` or `activation_steps_appen
 
 **Create.** Bind `{doc_workspace}` to `{workflow.ux_output_path}/{workflow.run_folder_pattern}/`. Create `.working/` and `imports/`; seed the memlog with `uv run {project-root}/_bmad/scripts/memlog.py init --workspace {doc_workspace} --field topic="<product/UX>"`; create `DESIGN.md` (frontmatter only), `EXPERIENCE.md` (frontmatter only), and `{workflow.run_folder_pattern}.md`, frontmatter plus one line each naming the two spines. Run Discovery → Finalize.
 
-**Update.** Read spines + memlog + sources. If `.memlog.md` is missing, init it with `uv run {project-root}/_bmad/scripts/memlog.py init --workspace {doc_workspace}` — this update is entry one. Surface conflicts with prior decisions. Run Finalize.
+**Update.** Read spines + memlog + the ticket in full (the sources when there is none); open a source only for a need the ticket or the change names. If `.memlog.md` is missing, init it with `uv run {project-root}/_bmad/scripts/memlog.py init --workspace {doc_workspace}` — this update is entry one. Surface conflicts with prior decisions. Run Finalize.
 
 **Validate.** See `references/validate.md`.
 
@@ -56,9 +56,9 @@ Activation is complete. If `activation_steps_prepend` or `activation_steps_appen
 
 **Capture; do not author.** The spines are distilled at Finalize toward the memlog. Decisions → `.memlog.md` (canonical), each appended via `uv run {project-root}/_bmad/scripts/memlog.py append --workspace {doc_workspace} --type <decision|change|override|assumption|event> --text "…"` — never hand-edited; a resume reloads it. Creative-tool artifacts → `.working/`. User-supplied visuals (Figma, sketches, brand decks, image folders) → `imports/`, one `memlog.py append` per item. Spines win on conflict.
 
-**Source scan.** List candidate inputs by type — `<type>-*/<type>-*.md` for `brief`, `prd`, `architecture`, `research`, and the ticket files (the initiative's own `initiative-*.md`, `epic-*/epic-*.md` under it) — in `{output_folder}/{active_initiative}/`, then `{output_folder}/`; surface paths only — never read content in the parent. User confirms which apply or adds others; subagent-extracts on confirm.
+**Ticket first.** Find the ticket for the work (`initiative-*.md`, `epic-*/epic-*.md`, `story-*.md`, `bug-*.md`, `spike-*.md` under `{output_folder}/{active_initiative}/`) and read it in full in the parent; its Requirements are the brief, and its `sources:` and `companions:` list what else exists. Open one of those only for a need the ticket points at; never re-derive requirements from a PRD or brief it already distilled. No ticket: list `<type>-*/<type>-*.md` for `brief`, `prd`, `architecture`, `research` there, then in `{output_folder}/`; surface paths only; user confirms which apply or adds others; subagent-extracts on confirm.
 
-Brain dump first — even when the user opens with paragraphs (that's intake). Subagent-extract big docs. One "anything else?" probe. Stakes: hobby / internal / consumer / regulated.
+Ticket Requirements first, then brain dump what they leave open — even when the user opens with paragraphs (that's intake). Subagent-extract big source docs. One "anything else?" probe. Stakes: hobby / internal / consumer / regulated.
 
 Working mode:
 
@@ -70,7 +70,7 @@ Creative tools — scan `{workflow.creative_tools}`, invoke when seeing helps. D
 
 Concern scan — name what the UX carries: accessibility, platforms, brand, regulated language, motion, i18n, dark mode, offline, content density, input modalities, notifications. Open list; drives invented sections.
 
-Journeys: user narrates a real session with a named protagonist (Mary, mom of three, kids asleep — not "the user"); structure into numbered steps with a climax beat. Mirror source-spec names verbatim when defined.
+Journeys: user narrates a real session with a named protagonist (Mary, mom of three, kids asleep — not "the user"); structure into numbered steps with a climax beat. Mirror the ticket's journey and requirement names verbatim when defined, the sources' when there is no ticket.
 
 Form-factor: mobile / web / desktop / multi-surface must resolve before IA closes. Named-protagonist journeys often derive it (Pary on iPad implies an iPad surface; Skeeter on Android adds a multi-surface need); when journeys don't disambiguate, probe.
 
@@ -84,7 +84,7 @@ Used by Validate and Finalize. **Opt-in, lens-selectable** — reviewers are cos
 
 Outcomes, in order:
 
-- **Spines distilled.** Subagent reads `.memlog.md`, `.working/`, `imports/`, sources; produces `DESIGN.md` against `## The DESIGN.md spine` + `{workflow.design_md_examples}` and `EXPERIENCE.md` against `## The EXPERIENCE.md spine` + `{workflow.experience_md_examples}`. Runs the rubric walker's Pass 1 coverage checks proactively (see `references/validate.md`). Surface gaps; never invent.
+- **Spines distilled.** Subagent reads `.memlog.md`, `.working/`, `imports/`, and the ticket in full, opening a source only where the memlog or ticket cites it; produces `DESIGN.md` against `## The DESIGN.md spine` + `{workflow.design_md_examples}` and `EXPERIENCE.md` against `## The EXPERIENCE.md spine` + `{workflow.experience_md_examples}`. Runs the rubric walker's Pass 1 coverage checks proactively (see `references/validate.md`). Surface gaps; never invent.
 - **Inputs reconciled.** Subagent per user-supplied input → `reconcile-{input}.md`. Surface dropped qualitative ideas.
 - **Reviewer Gate offered.** Ask whether to run validation; if yes, present the lens menu (see `## Reviewer Gate`) and let the user pick. If any lens ran, resolve findings before polish; otherwise proceed.
 - **Open items triaged.** Open Questions, `[ASSUMPTION]`, `[NOTE FOR UX]`. Phase-blockers one at a time; non-blockers → `memlog.py append`.

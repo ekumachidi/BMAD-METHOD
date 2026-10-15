@@ -34,7 +34,9 @@ Then run in order:
 
 A request or code that fits an item runs its `prompt` or `skill` (skill not installed: offer `npx skills add <repo> --skill <name>`, `<repo>` from the entry's `source` in `{skill-root}/bmod.toml`). No request: greet in one line and wait. Never show the menu.
 
-`tickets.py` is `uv run {skill-root}/scripts/tickets.py --project-root {project-root}`. On the repo store, answer readiness or status from `tickets.py next` or `status`. Open `{{ rendered("references/board.md") }}` to act on a row, when `problems`, `drift`, `unpinned_after`, `undeclared_after`, or `order_conflict` is non-empty, or first on a tracker.
+The ticket file at the altitude asked about (the initiative's, an epic's, a leaf's) is the spec. Read it first and in full on every request about it, before `tickets.py` and before any other file. Its sources were distilled into it and are re-read only by an update per `spec.md`; open a companion only when the step needs it. A status or "what's next" answer reports the file's state (open questions and assumptions, an input not yet folded in, not sliced, entries ready, blocked) and names the next step without starting it.
+
+`tickets.py` is `uv run {skill-root}/scripts/tickets.py --project-root {project-root}`. On the repo store, readiness comes from `tickets.py next` or `status`. Open `{{ rendered("references/board.md") }}` to act on a row, when `problems`, `drift`, `unpinned_after`, `undeclared_after`, or `order_conflict` is non-empty, or first on a tracker.
 
 ### Intake
 

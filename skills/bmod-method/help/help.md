@@ -6,7 +6,7 @@ This document covers the skills of the `method` module: what each one gives the 
 
 The method turns an intent of any size into working software. Recommend the smallest path that safely fits the work; never march the user through every skill. A project may hold only some of these skills: recommend from what is installed, and say plainly when a step has no installed skill rather than inventing a substitute.
 
-**The ticket is the spec.** The initiative, epic or story file is the spec at its level. Talk to Sofia the Product Owner (`bmad-agent-po`) to fill its Requirements from whatever the user has (a PRD, a brief, notes, a transcript), keep it in step with its sources, and slice from it.
+**The ticket is the spec.** The initiative, epic or story file is the spec at its level. Every skill that works on a ticket reads it first and in full and trusts it; its `sources:` are re-read only by Sofia when she updates it, and a `companions:` file only where the ticket points. Talk to Sofia the Product Owner (`bmad-agent-po`) to fill its Requirements from whatever the user has (a PRD, a brief, notes, a transcript), keep it in step with its sources, and slice from it.
 
 The four phases are analysis (ideation, research, is it worth building), planning (what exactly, and in what slices), implementation (build it), and validation (is it right). They describe what kind of help a skill gives. They are not a mandatory sequence to complete.
 
@@ -117,7 +117,7 @@ One line per skill: what it is for and what it writes. Paths are in the active i
 | `bmad-ux` | How the product looks and works. May lead, follow, or stand alone. Can produce mocks and wireframes. | `ux-<slug>/` with `DESIGN.md`, `EXPERIENCE.md`, and `ux-<slug>.md` naming them |
 | `bmad-architecture` | Settles only the decisions that keep separately built parts consistent. Coaches a user with no architecture knowledge, recommends a current starter, and covers hosting and deployment. | `architecture-<slug>/architecture-<slug>.md` |
 | **Implementation** (`help/implementation-skills.md`) | | |
-| `bmad-build` | One session of delivery: clarifies intent, plans, implements, reviews, commits. The default for any real change. Takes free text, a ticket from the tree (nothing means the next ready one), or any file as intent. | A ticket's plan beside `tickets.toml`, or `plan-<slug>.md`; `deferred-work.md` |
+| `bmad-build` | One session of delivery: clarifies intent, plans, implements, reviews, commits. The default for any real change. Takes free text, a ticket from the tree (nothing means the next ready one), or any file as intent. Reads a ticket in full with its epic. | A ticket's plan beside `tickets.toml`, or `plan-<slug>.md`; `deferred-work.md` |
 | `bmad-build-auto` | One unattended build of one ticket, dispatched by a loop or script. Never for attended work. | The same plans as `bmad-build` |
 | **Validation** (`help/validation-skills.md`) | | |
 | `bmad-code-review` | Agent review of any diff, PR, or branch, with triaged findings; with no argument it offers the tickets in review. Redundant right after a thorough `bmad-build` review of the same change. | A dated block in the plan's `## Code Review` section, or chat |

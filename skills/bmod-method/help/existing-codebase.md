@@ -1,6 +1,6 @@
 # Using the method on an existing codebase
 
-The method works on an inherited or long-lived codebase with no up-front documentation pass. `bmad-build` investigates the repository on every run, writes down what to reuse and what not to change, and follows that. Too little planning costs one build run, so start small and add planning only when the work calls for it.
+The method works on an inherited or long-lived codebase with no up-front documentation pass. `bmad-build` reads its ticket in full when one exists, then investigates the repository on every run, writes down what to reuse and what not to change, and follows that. Too little planning costs one build run, so start small and add planning only when the work calls for it.
 
 BMad is installed per project. The existing repository needs its own install and its own `bmad setup`.
 
