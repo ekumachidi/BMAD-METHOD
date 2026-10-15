@@ -39,11 +39,11 @@ Pre-sorted input (a PRD, a brief from an upstream BMad skill): keep its separati
 
 The template's comments say what Requirements and Constraints hold at this altitude. Rich input: extract directly. Sparse input: ask the user to choose **express** (every gap an `Open question:` line) or **guided** (walk the sections with the user one at a time).
 
-An unaddressed domain implication (healthcare silent on PHI) becomes an `Open question:` line; never invent the answer. If these dominate, the input is too thin; suggest `bmad-prd`.
+An unaddressed domain implication (healthcare silent on PHI) becomes an `Open question:` line; never invent the answer.
 
 A later memlog entry supersedes an earlier one. A new input, or a source changed since the memlog last cited it, is read against the memlog and the other sources; each disagreement, and any either/or never resolved, is put to the user as fix (a new memlog entry, the lines re-derived) or ignore (a `Decision:` line in Notes), never settled silently.
 
-If the input is too thin to distill, stop and suggest `bmad-prd`. This capability distills; it does not coach.
+When the user would rather work the idea itself out first, offer `bmad-product-brief` or `bmad-prd`; otherwise guided continues.
 
 ## Load-bearing
 

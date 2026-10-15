@@ -15,4 +15,4 @@ Read this when the question is about `bmad-build` or `bmad-build-auto`. For runn
 - Fits when: decisions and patterns are stable and the tickets are well specified.
 - Writes: the same plans as `bmad-build`.
 
-A significant midstream change, such as a technical limit, a new or misread requirement, a pivot, or a failed approach, goes to Sofia (`bmad-agent-po`, `help/planning-skills.md`): "this changed, what now". She reads the ticket tree, proposes the path (adjust, roll back, or cut scope), updates the ticket's Requirements when what is required changed, re-slices or drops the affected entries, and records the reason as a dated Decision line.
+A significant midstream change, such as a technical limit, a new or misread requirement, a pivot, or a failed approach, means talking to Sofia the Product Owner (`bmad-agent-po`, `help/planning-skills.md`) to replan: "this changed, what now". She reads the ticket tree, proposes the path (adjust, roll back, or cut scope), updates the ticket's Requirements when what is required changed, re-slices or drops the affected entries, and records the reason as a dated Decision line.

@@ -6,7 +6,7 @@ This document covers the skills of the `method` module: what each one gives the 
 
 The method turns an intent of any size into working software. Recommend the smallest path that safely fits the work; never march the user through every skill. A project may hold only some of these skills: recommend from what is installed, and say plainly when a step has no installed skill rather than inventing a substitute.
 
-**The ticket is the spec.** The initiative, epic or story file is the spec at its level: Sofia, the Product Owner (`bmad-agent-po`), fills its Requirements from whatever the user has (a PRD, a brief, notes, a transcript) and slices from it.
+**The ticket is the spec.** The initiative, epic or story file is the spec at its level. Talk to Sofia the Product Owner (`bmad-agent-po`) to fill its Requirements from whatever the user has (a PRD, a brief, notes, a transcript), keep it in step with its sources, and slice from it.
 
 The four phases are analysis (ideation, research, is it worth building), planning (what exactly, and in what slices), implementation (build it), and validation (is it right). They describe what kind of help a skill gives. They are not a mandatory sequence to complete.
 
@@ -34,54 +34,77 @@ This document should be enough to route the user and say what to do next. Each t
 | `help/review-choices.md` | Review depth, skipping review, another review pass, when to stop, slow reviews, customizing review. |
 | `help/project-context.md` | `bmad-project-context` in depth: what belongs in `AGENTS.md`, why the block is small, its intents, removing a rule. |
 
-## Start here
+## Routing
 
-- Can one session understand, build, review, and finish it?
-  - Obvious and low-risk (typo, formatting, config): just make the edit. No skill.
-  - Yes → `bmad-build`. No planning skill first.
-- Bigger than one session: does the user already have enough to say or paste (an idea they can explain in detail, notes, intent.md, single ticket, a transcript, a brief, a PRD)?
-  - Yes → Sofia (`bmad-agent-po`): she writes the ticket's Requirements from it and slices the stories. Then one `bmad-build` per story.
-  - No → find what is missing, run the skill that supplies it, then Sofia:
-    - They cannot name a customer or a problem → `bmad-forge-idea` or `bmad-brainstorming` (core tools), if installed.
-    - Unsure the idea is worth building → `bmad-prfaq`.
-    - Sure of the idea, but it is not written down or not shareable → `bmad-product-brief`. It is also the lighter choice when a full PRD is more than the work needs.
-    - Requirements need real detail, or many stakeholders, compliance, or integrations are involved → `bmad-prd`.
-    - The look and feel matter, or the user thinks best in screens and flows → `bmad-ux`. Starting with UX is a normal way in.
-    - Separate people, agents, or sessions could build parts that do not fit together → `bmad-architecture`.
-- Wants to prototype first, or is unsure the work is worth doing, feasible, or how complex it is → encourage a prototype. It suits enterprise work as much as hobby work, greenfield or existing code, and non-engineers can build one. A throwaway needs no skill. Afterwards the user decides to throw it away or keep it, and either way what it taught them goes to Sofia (`help/prototyping.md`).
-- Risk, unclear requirements, architectural reach, or coordination between people push work up a tier even when it is small.
+Every "what next" is answered by the state of the spec at its altitude: the initiative file, then each epic file. Upstream skills exist to feed it.
+
+```mermaid
+flowchart TD
+    A(["Request"]) --> B{"One session can understand, build, review and finish it?"}
+    B -->|obvious, low-risk edit| B1(["Just edit. No skill"])
+    B -->|yes| B2(["bmad-build"])
+    B -->|no| C{"Initiative file exists?<br/>an active initiative may be set with none written yet"}
+
+    C -->|no| D{"Work the idea out before it becomes the spec?<br/>the user wants to, or cannot yet say what it is"}
+    D -->|no| S1["Talk to Sofia the Product Owner to write the initiative from what exists: a PRD, UX, a brief, notes, an idea explained<br/>sources (what the Requirements derive from) and companions (what downstream reads beside the ticket) go in the frontmatter"]
+    D -->|cannot name a customer or problem| E1["bmad-forge-idea, bmad-brainstorming"]
+    D -->|unsure it is worth building| E2["bmad-prfaq, or a prototype"]
+    D -->|wants it written down, shareable| E3["bmad-product-brief"]
+    D -->|needs real detail, stakeholders, compliance, integrations| E4["bmad-prd"]
+    D -->|thinks in screens and flows| E5["bmad-ux"]
+    E1 & E2 & E3 & E4 & E5 --> S1
+    S1 --> F
+
+    C -->|yes| F{"State of the initiative file"}
+    F -->|open questions or assumptions| F1["Talk to Sofia the Product Owner to resolve them<br/>answers go to the source, the ticket, or both"]
+    F -->|a new or changed input: UX added, PRD edited, an architecture| F2["Talk to Sofia the Product Owner to update the initiative<br/>the input becomes a source or companion; each disagreement with the spec goes to the user: fix or ignore"]
+    F -->|not sliced| S2["Talk to Sofia the Product Owner to slice into epics, or into entries directly when the user asks<br/>each epic adopts its architecture section and UX"]
+    S2 --> G{"Would separately built epics have to share decisions?<br/>stack, contracts, formats, hosting"}
+    G -->|yes| G1["bmad-architecture reads the initiative<br/>then talk to Sofia the Product Owner to adopt it as a companion the epics cite"]
+    G -->|no| H
+    G1 --> H
+    F1 & F2 --> F
+    F -->|sliced, epics remain| H
+
+    H{"State of each epic file"} -->|no entries| S3["Talk to Sofia the Product Owner to incept the epic: entries in tickets.toml"]
+    H -->|an entry needs criteria first: a bug, refine = true| S5["Talk to Sofia the Product Owner to refine it"]
+    H -->|entries ready| I["bmad-build per entry<br/>bmad-build-auto when no one is present"]
+    H -->|blocked| S6["Talk to Sofia the Product Owner to settle it as a dated Decision, or spike it"]
+    H -->|a change surfaced mid-build| S4["Talk to Sofia the Product Owner to replan: she updates, re-slices or drops, and records the Decision"]
+    S3 & S4 & S5 & S6 --> H
+    I --> J["Review: inside bmad-build, bmad-code-review, or bmad-walkthrough<br/>the user marks the ticket done"]
+    J --> H
+    H -->|every ticket built, done or dropped| K["bmad-retrospective<br/>then talk to Sofia the Product Owner to close the epic"]
+    K --> F
+    F -->|every epic done| L(["Initiative done. Plans stay as evidence"])
+```
+
+Rules the diagram leans on:
+
+- The shaping skills feed each other before they feed the spec: a brief or PRFAQ before a PRD when the requirements still need drawing out; `bmad-ux` before or after a PRD, and it may lead on its own; a PRFAQ verdict with serious gaps is addressed before anything else. Sofia the Product Owner takes more than one input.
+- A prototype fits anywhere before the initiative file, and suits enterprise work, hobby work, and non-engineers; a throwaway needs no skill. Thrown away, talk to Sofia the Product Owner to write the initiative from its notes; kept, it is an existing codebase (`help/prototyping.md`).
+- Risk, unclear requirements, architectural reach, or several people push work up from one session even when it is small.
+- Mid-path, recommend the next unfinished step of the route the user is on, not a restart. After a change, work resumes at the earliest affected step; unaffected work is not replayed.
+- After `bmad-build`: open a PR, or `bmad-qa-generate-e2e-tests` when end-to-end coverage is wanted. The work is complete when the intent is satisfied, its chosen checks pass, and no chosen review leaves material findings open, not when every skill has run.
 
 ## Match the situation
 
-Situations the tree above does not settle.
+Situations the diagram does not settle.
 
 | The user says or has | Recommend | Because |
 |---|---|---|
-| "Create a spec", "write the requirements", "distill this PRD", "slice this", "tickets", "what's ready", "correct course", "ask Sofia", "the product owner" | `bmad-agent-po` | Each phrase dispatches to one of Sofia's capabilities (SPEC, TICKETS, REFINE, BOARD, VALIDATE, REPLAN, STORE); no menu is shown. |
-| "I want to start from the design" | `bmad-ux` | UX may lead. Feed its files to `bmad-prd` when requirements still need drawing out, to `bmad-product-brief` for a lighter write-up, or straight to Sofia when they say enough. |
-| A prototype, and asks what now | Decide: throw away or keep | Thrown away, the notes go to Sofia. Kept, treat it as an existing codebase (`help/prototyping.md`). |
+| "Create a spec", "write the initiative", "distill this PRD", "slice this", "tickets", "what's ready", "where are we", "this changed, what now", "ask Sofia", "the product owner" | Talk to Sofia the Product Owner (`bmad-agent-po`) to do what the phrase says | Each phrase dispatches to one of her capabilities (SPEC, TICKETS, REFINE, BOARD, VALIDATE, REPLAN, STORE); no menu is shown. |
+| One bug or story to track, with no epic to hold it | Talk to Sofia the Product Owner to write it as a `backlog/` ticket, or an entry in the epic the user names | Standalone leaves live in `backlog/`, are refined first, and build like any entry. |
 | Work spans several repositories | Install BMad at a workspace root that holds them all, with planning kept there | One session then reaches the plan and every project (`help/monorepo-and-polyrepo.md`). |
 | "How do I get my repo ready for AI agents?", or agents keep producing inconsistent work | Consistent patterns, a good initial `AGENTS.md`, end-to-end tests, and cleanup first when quality is low | Agents copy what they find (`help/preparing-a-repo-for-agents.md`). |
-| "Do I keep the PRD, spec, and stories once it is built?" | Keep joined plans and their evidence | Plans own live ticket state; scope routine reads to the active initiative (`help/artifact-lifetime.md`). |
 | An inherited or brownfield codebase | A small `bmad-build` change first; `bmad-project-context` and `bmad-walkthrough` as needed | No up-front documentation pass is required (`help/existing-codebase.md`). |
-| "I don't know architecture, stacks, or hosting" | `bmad-architecture`, or the architect agent to talk it through | It coaches, recommends a current starter, and lays out options with reasons for the user to choose. Technical knowledge is not needed to start. |
-| "An app for X" and nothing more | `bmad-product-brief`, or `bmad-prd` when the stakes call for full requirements | Sofia distills and will not coach; the input is too thin for her. The brief is the lighter of the two. |
-| A PRD and architecture, several epics, wants tracking | `bmad-agent-po` | One tree of epics, entries, and joined plans. |
 | A team with an existing PRD, a tracker, approvals, or several engineers | The full path only when approvers, parallel teams, or required documents call for it | The existing PRD is input, each document has one owner, and sign-off attaches to skill results (`help/working-in-an-organization.md`). |
-| "Can BMad build my stories by itself?" | `bmad-build-auto`, dispatched per story by a loop | It suits settled decisions and well specified stories, with someone reading the results. For work planned with Sofia, give it the ticket, one run per ticket (`help/unattended-builds.md`). |
-| Wants tickets or a tracker (Jira, Linear, GitHub) as the record | `bmad-agent-po` | Tickets are the board. The build moves a ticket's `status` in its plan as far as `built`, and the user marks it done. |
-| "Where are we?" | `bmad-agent-po`, "what's the status" | Reads the ticket tree and joined plan statuses. |
-| A v6 project (`epics.md`, `sprint-status.yaml`, dated folders under the planning folder) that wants the v7 layout | `bmad migrate method` | The module ships `migration-1.toml`: the rules for turning the planning folder into an initiative, moving document folders into it whole, and turning epics and sprint status into a ticket tree. Unrecognized files outside the planning folder stay where they are. The `bmad` skill plans it with the user, then performs it. |
-| A PR, a branch, a ticket in review, or code `bmad-build` did not write | `bmad-code-review` | Agent lenses over any diff. With no argument it offers the tickets in review. |
-| "Walk me through what changed" | `bmad-walkthrough` | The human is the reviewer. |
-| Every ticket of an epic is built, done, or dropped | `bmad-retrospective` | It judges the whole against the epic's Done when and the initiative's requirements. |
-| A big change surfaced mid-build | `bmad-agent-po`, "this changed, what now" | She reads the tree, updates the ticket's Requirements when what is required changed, names what went stale, re-slices or drops it, and records the reason as a dated Decision line. |
-| Wants an expert to think a phase through with, or is unsure where to begin in it | The agent for that phase (see "The agents") | It guides across turns and runs the phase's skills from its menu. |
-| Agents keep making the same mistake in this repo | `bmad-project-context` | It records the rule in `AGENTS.md`. |
+| Wants tickets or a tracker (Jira, Linear, GitHub) as the record | Talk to Sofia the Product Owner to connect it | Tickets are the board. |
+| A v6 project (`epics.md`, `sprint-status.yaml`, dated folders under the planning folder) that wants the v7 layout | `bmad migrate method`, before anything else | The module ships `migration-1.toml`: the rules for turning the planning folder into an initiative, moving document folders into it whole, and turning epics and sprint status into a ticket tree. Unrecognized files outside the planning folder stay where they are. The `bmad` skill plans it with the user, then performs it. |
 
 ## The skills
 
-One line per skill: what it is for and what it writes. The files it writes are how to tell what is already done. Paths are in the active initiative's folder, `{output_folder}/{active_initiative}/`, or in `{output_folder}/` when none is active; each document is a `<type>-<slug>/` folder holding `<type>-<slug>.md`. When none is active, `bmad-product-brief`, `bmad-prd`, `bmad-ux`, and `bmad-architecture` hand off to the `bmad` skill to set one; `bmad-agent-po` offers to create one; `bmad-brainstorming`, `bmad-deep-recon`, `bmad-forge-idea`, `bmad-prfaq`, `bmad-party-mode`, and `bmad-build` ask once per session whether the work belongs to one; the rest write to `{output_folder}/`. Showing, switching, creating, or clearing the active initiative is a `bmad` request. `planning_artifacts` and `implementation_artifacts` are no longer read; a v6 project moves its files with `bmad migrate method`. Open the phase file for the full picture of a skill: what it gives, when to pick it, when not to.
+One line per skill: what it is for and what it writes. Paths are in the active initiative's folder, `{output_folder}/{active_initiative}/`, or in `{output_folder}/` when none is active; each document is a `<type>-<slug>/` folder holding `<type>-<slug>.md`. With no active initiative, `bmad-agent-po` offers to create one; the other planning skills hand off to the `bmad` skill to set one. Showing, switching, creating, or clearing the active initiative is a `bmad` request. `planning_artifacts` and `implementation_artifacts` are no longer read.
 
 | Skill | For | Writes |
 |---|---|---|
@@ -89,7 +112,7 @@ One line per skill: what it is for and what it writes. The files it writes are h
 | `bmad-product-brief` | A 1-2 page brief of a product the user believes in. Lighter than a PRD, sharper than a hand-written intent file. It does not judge the idea. | `brief-<slug>/brief-<slug>.md` |
 | `bmad-prfaq` | Tests whether a concept survives scrutiny: press release, hard FAQs, researched claims, a verdict. | `prfaq-<slug>/prfaq-<slug>.md`, plus `-distillate.md` beside it |
 | **Planning** (`help/planning-skills.md`) | | |
-| `bmad-agent-po` | Sofia, the Product Owner. Writes a ticket's Requirements and Constraints from any input, with a stable `R<n>` id per line naming its source, and updates them when the input changes; she does not coach. Slices initiatives into epics and epics into stories, refines a ticket, runs the board (ready, next, blocked, done), validates, replans a change mid-flight, and connects a tracker. Stories are entries in `tickets.toml`; a file is written only when one is reviewed, refined, or published. Bugs go to `backlog/`. | The ticket file, with `.memlog.md` and companions beside it; the ticket tree under `{output_folder}/{active_initiative}/`, plus `{output_folder}/backlog/` |
+| `bmad-agent-po` | Sofia the Product Owner. Writes a ticket's Requirements and Constraints from any input, with a stable `R<n>` id per line naming its source, offering express (every gap an Open question line) or guided (walking the sections with the user) when the input is sparse, and updates them when the input changes. Slices initiatives into epics and epics into stories, refines a ticket, runs the board (ready, next, blocked, done), validates, replans a change mid-flight, and connects a tracker. Stories are entries in `tickets.toml`; a file is written only when one is reviewed, refined, or published. A bug is a `backlog/` file or an entry in its epic. | The ticket file, with `.memlog.md` and companions beside it; the ticket tree under `{output_folder}/{active_initiative}/`, plus `{output_folder}/backlog/` |
 | `bmad-prd` | Coaches detailed requirements out of the user, sized to the stakes. Also updates and validates a PRD. | `prd-<slug>/prd-<slug>.md` |
 | `bmad-ux` | How the product looks and works. May lead, follow, or stand alone. Can produce mocks and wireframes. | `ux-<slug>/` with `DESIGN.md`, `EXPERIENCE.md`, and `ux-<slug>.md` naming them |
 | `bmad-architecture` | Settles only the decisions that keep separately built parts consistent. Coaches a user with no architecture knowledge, recommends a current starter, and covers hosting and deployment. | `architecture-<slug>/architecture-<slug>.md` |
@@ -97,16 +120,12 @@ One line per skill: what it is for and what it writes. The files it writes are h
 | `bmad-build` | One session of delivery: clarifies intent, plans, implements, reviews, commits. The default for any real change. Takes free text, a ticket from the tree (nothing means the next ready one), or any file as intent. | A ticket's plan beside `tickets.toml`, or `plan-<slug>.md`; `deferred-work.md` |
 | `bmad-build-auto` | One unattended build of one ticket, dispatched by a loop or script. Never for attended work. | The same plans as `bmad-build` |
 | **Validation** (`help/validation-skills.md`) | | |
-| `bmad-code-review` | Agent review of any diff, PR, or branch, with triaged findings. Redundant right after a thorough `bmad-build` review of the same change. | A dated block in the plan's `## Code Review` section, or chat |
+| `bmad-code-review` | Agent review of any diff, PR, or branch, with triaged findings; with no argument it offers the tickets in review. Redundant right after a thorough `bmad-build` review of the same change. | A dated block in the plan's `## Code Review` section, or chat |
 | `bmad-walkthrough` | The human reviews a change block by block, guided. Also a way to learn unfamiliar code. | `walkthrough-<slug>/` with the narrative and a `-log.md` |
 | `bmad-qa-generate-e2e-tests` | API and end-to-end tests for features that already exist. | Tests where the project keeps its end-to-end tests; the report is in chat |
 | `bmad-retrospective` | Judges a finished epic folder in the ticket tree as a whole against its Done when. | `epic-<slug>-retrospective.md` in the epic folder |
 | **Any time** (`help/project-context.md`) | | |
 | `bmad-project-context` | Keeps a small, verified block of rules for agents. Use it when an agent got something wrong in this repo, a repo has no usable `AGENTS.md`, or the stack was just decided. It gives no repo overview. | `{project-root}/AGENTS.md` |
-
-### Slicing and tracking the work
-
-Sofia (`bmad-agent-po`) plans and tracks work in one ticket tree. An initiative holds epics; each epic's `tickets.toml` holds ordered entries. Build an entry directly without making a story file. Standalone stories and bugs can be direct intent or backlog leaves. Plans own status and remain live after completion. Builds stop at `built`; the user or orchestrator marks `done`. See `help/ticketing-setup.md`.
 
 ### Who reviews what
 
@@ -131,25 +150,6 @@ Six named experts, each owning a phase and staying in the conversation across tu
 | Amelia, developer — `bmad-agent-dev` | Implementation and validation | Build stories, generate tests, review code, and run a retrospective. |
 
 An agent and its skills are two ways into the same work: a skill run directly does the job, and an agent adds a guide who knows the whole phase. `bmad-party-mode` brings the agents together in one discussion and offers the `product-team` room.
-
-## After a skill finishes
-
-| Just finished | Offer next |
-|---|---|
-| `bmad-product-brief`, `bmad-prfaq` | `bmad-prd` when the requirements still need drawing out. After a PRFAQ verdict with serious gaps, address those before anything else. |
-| `bmad-prd` | `bmad-ux` when the UI matters; `bmad-architecture` when parts must fit together. |
-| `bmad-ux` | When UX came first and requirements are still thin, `bmad-prd` or the lighter `bmad-product-brief` with the UX files as input. |
-| Sofia has written a ticket's Requirements | Its open questions and assumptions, if any. Then she slices the stories, and `bmad-build` per story, or straight to `bmad-build` when one session can do it. |
-| `bmad-build` | Open a PR, or `bmad-walkthrough` when a person wants to understand the change. Once the user marks the ticket done, the next ticket. `bmad-qa-generate-e2e-tests` when end-to-end coverage is wanted. |
-| The last ticket of an epic | `bmad-retrospective`, then a refactoring pass over the whole changeset, which is commonly skipped (`help/preparing-a-repo-for-agents.md`). Then close the epic through Sofia and retain its plans (`help/artifact-lifetime.md`). |
-
-## Answering "what's next?"
-
-Read the state before recommending: which of the outputs named above exist, and what the codebase, git history, and the user say is done. A file's presence, or a plan with `status: done`, is evidence the skill ran, not proof the work is finished or current.
-
-- Mid-path, recommend the next unfinished step of the route the user is on, not a restart, and migrate legacy artifacts before resuming them.
-- When a significant change surfaces, route it as the table in "Match the situation" says, then resume at the earliest affected step. Do not replay unaffected work.
-- The work is complete when the intent is satisfied, its chosen checks pass, and no chosen review leaves material findings open — not when every skill has run.
 
 ## When this document is not enough
 

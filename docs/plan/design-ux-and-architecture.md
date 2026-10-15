@@ -51,9 +51,9 @@ is yes, the call is non-obvious, and it is a real trade-off. Everything else
 is left to the code. Each decision gets a stable ID so tickets and stories can
 cite it.
 
-The skill works from whatever you have: a ticket's requirements, a raw idea, a long
-architecture document to shorten, or an existing codebase, where it reads the
-real code and records the conventions already there. Coaching is the default:
+The skill works from the ticket's requirements, with whatever else you have beside
+them: a long architecture document to shorten, or an existing codebase, where it
+reads the real code and records the conventions already there. Coaching is the default:
 the important calls are shown with the alternatives weighed, then you choose.
 A Fast path drafts the whole spine with `[ASSUMPTION]` tags instead. For a
 new project it recommends a current, well-known starter, because a good one
