@@ -227,6 +227,54 @@ class MigrateV6Tests(unittest.TestCase):
         self.assertEqual(tomllib.loads((custom / "bmad-old.toml").read_text(encoding="utf-8")), {})
         self.assertEqual(self.migrate()["notes"], [])
 
+    def test_activation_and_fact_keys_move_from_workflow_to_agent(self):
+        custom = self.bmad / "custom"
+        write(
+            custom / "bmad-agent-po.toml",
+            '[workflow]\n# mine\npersistent_facts = ["file:docs/*.md"]\npublication = "on_start"\n'
+            'activation_steps_append = ["say hi"]\n',
+        )
+        write(
+            custom / "bmad-agent-po.user.toml",
+            '[agent]\npersistent_facts = ["team fact"]\n\n[workflow]\npersistent_facts = ["my fact"]\n',
+        )
+
+        report = self.migrate()
+        self.assertEqual(
+            report["stale_config_keys"],
+            [
+                {"file": "_bmad/custom/bmad-agent-po.toml", "key": "workflow.activation_steps_append"},
+                {"file": "_bmad/custom/bmad-agent-po.toml", "key": "workflow.persistent_facts"},
+                {"file": "_bmad/custom/bmad-agent-po.user.toml", "key": "workflow.persistent_facts"},
+            ],
+        )
+
+        cleaned = self.migrate("--clean")
+        self.assertEqual(cleaned["removed_keys"], [])
+        self.assertEqual(
+            [(moved["file"], moved["to"]) for moved in cleaned["moved_keys"]],
+            [
+                ("_bmad/custom/bmad-agent-po.toml", "agent.activation_steps_append"),
+                ("_bmad/custom/bmad-agent-po.toml", "agent.persistent_facts"),
+                ("_bmad/custom/bmad-agent-po.user.toml", "agent.persistent_facts"),
+            ],
+        )
+        self.assertIn("moved from [workflow] to [agent]", cleaned["notes"][0])
+        team = (custom / "bmad-agent-po.toml").read_text(encoding="utf-8")
+        self.assertIn("# mine", team)
+        self.assertEqual(
+            tomllib.loads(team),
+            {
+                "workflow": {"publication": "on_start"},
+                "agent": {"activation_steps_append": ["say hi"], "persistent_facts": ["file:docs/*.md"]},
+            },
+        )
+        self.assertEqual(
+            tomllib.loads((custom / "bmad-agent-po.user.toml").read_text(encoding="utf-8")),
+            {"agent": {"persistent_facts": ["team fact", "my fact"]}},
+        )
+        self.assertEqual(self.migrate()["stale_config_keys"], [])
+
     def test_every_classic_installer_trace_is_listed(self):
         leftovers = (
             "_config/manifest.yaml",
@@ -511,6 +559,60 @@ class FoldSpecsTests(unittest.TestCase):
         self.assertIn("- spec — ../epic-ball.md, R2\n", story)
         self.assert_references_resolve(epic / "epic-ball.md")
         self.assert_references_resolve(epic / "tickets" / "story-launch-angle.md")
+
+    def test_a_same_named_spec_in_another_epic_keeps_its_references(self):
+        self.write_epic_with_spec()
+        other = self.initiative / "epic-putt"
+        write(
+            other / "epic-putt.md",
+            EPIC_BALL.replace("epic-ball", "epic-putt").replace("See spec-ball/spec-ball.md.", "- R1: Putts roll."),
+        )
+        write(
+            other / "story-green.md", "---\nid: 1\n---\n\n# Green\n\n## References\n\n- spec — spec-ball/spec-ball.md\n"
+        )
+        write(other / "spec-ball" / "spec-ball.md", spec_frontmatter(companions="[]", sources="[]") + SPEC_BODY)
+
+        report = self.fold()
+
+        self.assertEqual(len(report["folded"]), 2, msg=report)
+        self.assertIn("- spec — epic-putt.md\n", (other / "story-green.md").read_text(encoding="utf-8"))
+        self.assertNotIn("epic-ball", (other / "epic-putt.md").read_text(encoding="utf-8"))
+        self.assertIn(
+            "- spec — epic-ball.md, R2\n",
+            (self.initiative / "epic-ball" / "story-launch-angle.md").read_text(encoding="utf-8"),
+        )
+
+    def test_a_nested_companion_keeps_its_path_below_the_ticket(self):
+        epic = self.write_epic_with_spec()
+        write(
+            epic / "spec-ball" / "spec-ball.md",
+            spec_frontmatter(companions="[details/table.md]", sources="[]") + SPEC_BODY,
+        )
+        write(epic / "spec-ball" / "details" / "table.md", "| carry |\n")
+
+        (fold,) = self.fold()["folded"]
+
+        self.assertEqual((epic / "details" / "table.md").read_text(encoding="utf-8"), "| carry |\n")
+        text = (epic / "epic-ball.md").read_text(encoding="utf-8")
+        self.assertIn("companions: [_bmad-output/initiative-golf/epic-ball/details/table.md]\n", text)
+        self.assertIn("- companion — details/table.md\n", text)
+        self.assertNotIn("spec-ball/details", text)
+        self.assert_references_resolve(epic / "epic-ball.md")
+
+    def test_a_block_list_in_the_tickets_frontmatter_is_replaced_whole(self):
+        epic = self.write_epic_with_spec()
+        write(
+            epic / "epic-ball.md",
+            EPIC_BALL.replace("after: []\n", "after: []\nsources:\n  - ../initiative-golf.md\n"),
+        )
+
+        self.fold()
+
+        text = (epic / "epic-ball.md").read_text(encoding="utf-8")
+        self.assertIn(
+            "sources: [../initiative-golf.md, _bmad-output/initiative-golf/prd-golf/prd-golf.md]\ncompanions:", text
+        )
+        self.assertNotIn("  - ../initiative-golf.md", text)
 
     def test_the_spec_ids_follow_the_requirements_a_ticket_already_has(self):
         epic = self.write_epic_with_spec()

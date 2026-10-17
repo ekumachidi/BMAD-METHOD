@@ -102,6 +102,11 @@ RETIRED_CUSTOM_NOTE = (
     "the one template for an initiative, epic or story, and <capability>_after (spec_after, tickets_after, ...) "
     "in place of on_complete."
 )
+# `[workflow]` keys of the retired skills that the agent reads under `[agent]`; they move there, values kept.
+MOVED_CUSTOM_KEYS = {
+    "bmad-agent-po": ("activation_steps_prepend", "activation_steps_append", "persistent_facts"),
+}
+MOVED_CUSTOM_NOTE = "{file}: {keys} moved from [workflow] to [agent], where bmad-agent-po reads them."
 
 
 def legacy_leftovers(project_root: Path) -> list[str]:
@@ -134,10 +139,12 @@ def stale_config_keys(project_root: Path) -> list[tuple[str, tuple[str, ...]]]:
 
 
 def stale_custom_keys(project_root: Path, retirement: Retirement) -> list[tuple[str, tuple[str, ...]]]:
-    """The RETIRED_CUSTOM_KEYS set in a skill's `_bmad/custom/` files, a retired name's file carried over included."""
+    """The RETIRED_CUSTOM_KEYS and MOVED_CUSTOM_KEYS set in a skill's `_bmad/custom/` files, a retired name's file
+    carried over included."""
     custom = project_root / "_bmad" / "custom"
     stale: list[tuple[str, tuple[str, ...]]] = []
-    for skill, keys in RETIRED_CUSTOM_KEYS.items():
+    for skill in dict.fromkeys((*RETIRED_CUSTOM_KEYS, *MOVED_CUSTOM_KEYS)):
+        keys = (*RETIRED_CUSTOM_KEYS.get(skill, ()), *MOVED_CUSTOM_KEYS.get(skill, ()))
         names = [f"{skill}.toml", f"{skill}.user.toml"]
         names += [old for old, new in (*retirement.renames, *retirement.unmoved) if new.split(".")[0] == skill]
         for name in dict.fromkeys(names):
@@ -156,12 +163,19 @@ def stale_custom_keys(project_root: Path, retirement: Retirement) -> list[tuple[
     return stale
 
 
+def is_moved(key: tuple[str, ...]) -> bool:
+    return any(key[-1] in keys for keys in MOVED_CUSTOM_KEYS.values())
+
+
 def custom_key_notes(stale: list[tuple[str, tuple[str, ...]]]) -> list[str]:
-    """One note per file in a `stale_custom_keys` result."""
-    return [
-        RETIRED_CUSTOM_NOTE.format(file=file, keys=", ".join(key[-1] for f, key in stale if f == file))
-        for file in dict.fromkeys(file for file, _key in stale)
-    ]
+    """Per file in a `stale_custom_keys` result, a note on the keys dropped and one on the keys moved."""
+    notes: list[str] = []
+    for file in dict.fromkeys(file for file, _key in stale):
+        for note, moved in ((RETIRED_CUSTOM_NOTE, False), (MOVED_CUSTOM_NOTE, True)):
+            keys = [key[-1] for f, key in stale if f == file and is_moved(key) == moved]
+            if keys:
+                notes.append(note.format(file=file, keys=", ".join(keys)))
+    return notes
 
 
 def unused_customizations(project_root: Path, installation: Installation, retirement: Retirement) -> list[str]:
@@ -212,9 +226,13 @@ def clean(project_root: Path, skill_root: Path, *, roots: tuple[Path, ...] = ())
     custom_keys = stale_custom_keys(project_root, retirement)
     stale = [*stale_config_keys(project_root), *custom_keys]
     unused = unused_customizations(project_root, installation, retirement)
+    moved = [(file, key) for file, key in custom_keys if is_moved(key)]
+    removed = [(file, key) for file, key in stale if (file, key) not in moved]
     edits = {
         relative: text_without_keys(
-            (project_root / relative).read_text(encoding="utf-8"), [key for file, key in stale if file == relative]
+            (project_root / relative).read_text(encoding="utf-8"),
+            [key for file, key in removed if file == relative],
+            [key for file, key in moved if file == relative],
         )
         for relative in dict.fromkeys(file for file, _path in stale)
     }
@@ -223,6 +241,7 @@ def clean(project_root: Path, skill_root: Path, *, roots: tuple[Path, ...] = ())
         "backup": None,
         "removed_files": [],
         "removed_keys": [],
+        "moved_keys": [],
         "removed_customizations": [],
         "notes": [],
     }
@@ -242,7 +261,10 @@ def clean(project_root: Path, skill_root: Path, *, roots: tuple[Path, ...] = ())
     for name in unused:
         (bmad / "custom" / name).unlink()
     report["removed_files"] = [f"_bmad/{relative}" for relative in leftovers]
-    report["removed_keys"] = [{"file": relative, "key": ".".join(path)} for relative, path in stale]
+    report["removed_keys"] = [{"file": relative, "key": ".".join(path)} for relative, path in removed]
+    report["moved_keys"] = [
+        {"file": relative, "key": ".".join(path), "to": f"agent.{path[-1]}"} for relative, path in moved
+    ]
     report["removed_customizations"] = [f"_bmad/custom/{name}" for name in unused]
     report["notes"] = custom_key_notes(custom_keys)
     return report
@@ -266,18 +288,29 @@ def prune_empty_parents(folder: Path, stop: Path) -> None:
         folder = folder.parent
 
 
-def text_without_keys(text: str, paths: list[tuple[str, ...]]) -> str:
-    """The file's text with these keys removed, so comments and layout survive.
+def text_without_keys(text: str, paths: list[tuple[str, ...]], moves: list[tuple[str, ...]] = ()) -> str:
+    """The file's text with these keys removed, and `moves` moved to the same key under `[agent]` (a list joined
+    after one already there), so comments and layout survive.
 
     A key written on one line in its table's section is cut by text, and a table left
     empty loses its header. When the result does not parse to the expected values,
     the whole file is rendered instead.
     """
+    original = tomllib.loads(text)
     expected = tomllib.loads(text)
-    for path in paths:
+    moved = {path[-1]: value for path in moves if (value := lookup(original, path)) is not _MISSING}
+    for path in (*paths, *moves):
         drop_path(expected, path)
+    if moved:
+        agent = expected.setdefault("agent", {})
+        for leaf, value in moved.items():
+            current = agent.get(leaf)
+            if current is None:
+                agent[leaf] = value
+            elif isinstance(current, list) and isinstance(value, list):
+                agent[leaf] = current + value
     lines = text.split("\n")
-    for path in paths:
+    for path in (*paths, *moves):
         lines = lines_without_key(lines, path[:-1], path[-1])
     headers = [index for index, line in enumerate(lines) if TABLE_HEADER.match(line)]
     emptied = {
@@ -291,6 +324,8 @@ def text_without_keys(text: str, paths: list[tuple[str, ...]]) -> str:
         )
     }
     candidate = "\n".join(line for index, line in enumerate(lines) if index not in emptied)
+    if moved and "agent" not in original:
+        candidate = candidate.rstrip("\n") + "\n\n" + render_toml({"agent": moved})
     try:
         if tomllib.loads(candidate) == expected:
             return candidate
@@ -469,7 +504,7 @@ def fold_spec(project_root: Path, store: Path, folder: Path) -> dict[str, object
         text = path.read_text(encoding="utf-8")
         changed = text
         for old, new in rewrites:
-            changed = changed.replace(old, new)
+            changed = rewrite_reference(changed, old, new, path, folder.parent, project_root)
         if changed != text:
             path.write_text(changed, encoding="utf-8")
             rewritten.append(relative(path, project_root))
@@ -531,6 +566,32 @@ def fold_spec(project_root: Path, store: Path, folder: Path) -> dict[str, object
         "memlog": relative(memlog, project_root),
         "rewritten": rewritten,
     }
+
+
+PATH_DELIMITERS = set(" \t\n()[]<>\"'`,|=:")
+
+
+def rewrite_reference(text: str, old: str, new: str, file: Path, base: Path, project_root: Path) -> str:
+    """`old` replaced by `new` where the path it ends resolves to `base / old`: from the file's folder or one above
+    it (the project root among them), from `{project-root}`, or absolute. Another folder's spec of the same name
+    keeps its references."""
+    target = (base / old).resolve()
+    out, last = [], 0
+    for match in re.finditer(re.escape(old), text):
+        start = match.start()
+        while start > 0 and text[start - 1] not in PATH_DELIMITERS:
+            start -= 1
+        written = text[start : match.end()]
+        if written.startswith("{project-root}/"):
+            candidates = [project_root / written.removeprefix("{project-root}/")]
+        elif written.startswith("/"):
+            candidates = [Path(written)]
+        else:
+            candidates = [above / written for above in (file.parent, *file.parent.parents)]
+        if any(candidate.resolve() == target for candidate in candidates):
+            out += [text[last : match.start()], new]
+            last = match.end()
+    return "".join(out) + text[last:]
 
 
 def text_files(root: Path, *, skip: tuple[Path, ...] = ()) -> list[Path]:
@@ -752,7 +813,11 @@ def with_list(meta: list[str], key: str, items: list[str]) -> list[str]:
     merged = list(dict.fromkeys((frontmatter_list(meta, key) if index is not None else []) + items))
     line = f"{key}: [{', '.join(merged)}]"
     if index is not None:
-        return [*meta[:index], line, *meta[index + 1 :]]
+        # A block list's `- item` lines go with the key line they continue.
+        end = index + 1
+        while end < len(meta) and meta[end].lstrip().startswith("- "):
+            end += 1
+        return [*meta[:index], line, *meta[end:]]
     after = next((i for i, line in enumerate(meta) if re.match(r"\Asources\s*:", line)), None)
     if after is None or key == "sources":
         return [*meta, line]
@@ -824,8 +889,8 @@ def companion_references(
             unresolved.append(item)
             lines.append(f"- companion — {item}")
             continue
-        if target.parent == folder:
-            lines.append(f"- companion — {target.name}")
+        if target.is_relative_to(folder.resolve()):
+            lines.append(f"- companion — {target.relative_to(folder.resolve()).as_posix()}")
             continue
         kind = COMPANION_TYPES.get(target.name) or re.split(r"[-_.]", target.stem, maxsplit=1)[0].lower() or "companion"
         lines.append(f"- {kind} — {rebase(item, folder, home, project_root, store)}")
@@ -837,8 +902,7 @@ def companion_path(item: str, folder: Path, home: Path, project_root: Path, stor
     target = resolve_companion(item, folder, project_root, store)
     if target is None:
         return item
-    if target.parent == folder:
-        target = home.resolve() / target.name
+    target = moved_path(target, folder, home)
     if target.is_relative_to(project_root.resolve()):
         return target.relative_to(project_root.resolve()).as_posix()
     return rebase(item, folder, home, project_root, store)
@@ -852,13 +916,19 @@ def resolve_companion(item: str, folder: Path, project_root: Path, store: Path) 
     return None
 
 
+def moved_path(target: Path, folder: Path, home: Path) -> Path:
+    """Where a file in the spec folder, at any depth, sits once the fold moves the folder's contents beside the ticket."""
+    if target.is_relative_to(folder.resolve()):
+        return home.resolve() / target.relative_to(folder.resolve())
+    return target
+
+
 def rebase(item: str, folder: Path, home: Path, project_root: Path, store: Path) -> str:
-    """The path as the ticket's folder sees it: a name beside it, a path from the project root, else relative."""
+    """The path as the ticket's folder sees it: a path from beside it, a path from the project root, else relative."""
     target = resolve_companion(item, folder, project_root, store)
     if target is None:
         return item
-    if target.parent == folder:
-        return target.name
+    target = moved_path(target, folder, home)
     if target.is_relative_to(home.resolve()):
         return target.relative_to(home.resolve()).as_posix()
     if target.is_relative_to(project_root.resolve()):
