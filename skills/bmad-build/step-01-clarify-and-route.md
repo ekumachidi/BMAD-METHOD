@@ -54,7 +54,7 @@ This runs on the output of `tickets.py find` for one ticket. Read `story_file` i
 ## INSTRUCTIONS
 
 1. Load context.
-   - **A ticket from the tree** — when **Ticket resolution** set `plan_file`: the story file (or the entry) and the epic file, read in full under **Ticket resolution**, are already the intent. For continuity, read the plans beside `plan_file` whose `ticket` is one of find's `after` ids that is a plain number (an entry of the same epic; a ref such as `1.5` is another epic's). Extract each one's **Code Map**, **Design Notes**, **Plan Change Log**, and task list as continuity context for step-02 planning.
+   - **A ticket from the tree** — when **Ticket resolution** set `plan_file`: the story file (or the entry) and the epic file, read in full under **Ticket resolution**, are already the intent. Then list the `research-*` folders in `{{ initiative_folder }}/` and load each `type: codebase` document whose `ticket` names this ticket, since a research run on an entry with no ticket file leaves no References line to follow. For continuity, read the plans beside `plan_file` whose `ticket` is one of find's `after` ids that is a plain number (an entry of the same epic; a ref such as `1.5` is another epic's). Extract each one's **Code Map**, **Design Notes**, **Plan Change Log**, and task list as continuity context for step-02 planning.
    - **Anything else:**
      {% if initiative_folder == config.output_folder %}
      - No initiative is active: unless the user already said in this session, ask once whether this work belongs to an initiative (hand off to the `bmad` skill to set one, then run this skill again) or is loose.
@@ -69,6 +69,7 @@ This runs on the output of `tickets.py find` for one ticket. Read `story_file` i
        - **Architecture** (`architecture-*/architecture-*.md`) — technical design decisions and constraints
        - **UX/Design** (`ux-*/`, with `DESIGN.md` and `EXPERIENCE.md`) — user experience and interaction design
        - **Product Brief** (`brief-*/brief-*.md`) — project vision and scope
+       - **Research** (`research-*/research-*.md`) — cited evidence; a `type: codebase` one says how the code works and how it got that way, as of the commit in its frontmatter
      - When the listing holds a ticket file for this work, read it first and in full and do not re-read its `sources:`; open a file its References or `companions:` name only for a need the ticket points at. With no ticket, load the planning documents that fit the intent.
 2. Carry the intent and loaded evidence forward as-is. Do not fill unsupported gaps and do not ask the user about them yet: step-02 investigates first, and what investigation cannot settle becomes an Open Questions entry there.
 3. Version control sanity check. Is the working tree clean? Does the current branch make sense for this intent — considering its name and recent history? If the tree is dirty or the branch is an obvious mismatch, HALT and ask the human before proceeding. If version control is unavailable, skip this check.

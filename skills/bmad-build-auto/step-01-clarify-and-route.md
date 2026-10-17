@@ -40,7 +40,7 @@ This runs on the output of `tickets.py find` for one ticket. Set `ticket_args` t
 ## INSTRUCTIONS
 
 1. Load context.
-   - **A ticket from the tree** — when **Ticket resolution** set `plan_file`: the story file (or the entry) and the epic file, read in full under **Ticket resolution**, are already the intent. For continuity, read the plans beside `plan_file` whose `ticket` is one of find's `after` ids that is a plain number (an entry of the same epic; a ref such as `1.5` is another epic's). Carry forward each one's **Code Map**, **Design Notes**, **Implementation Notes**, **Plan Change Log**, and **Tasks & Acceptance**, where present, as continuity context for step-02.
+   - **A ticket from the tree** — when **Ticket resolution** set `plan_file`: the story file (or the entry) and the epic file, read in full under **Ticket resolution**, are already the intent. Then list the `research-*` folders in `{{ initiative_folder }}/` and load each `type: codebase` document whose `ticket` names this ticket, since a research run on an entry with no ticket file leaves no References line to follow. For continuity, read the plans beside `plan_file` whose `ticket` is one of find's `after` ids that is a plain number (an entry of the same epic; a ref such as `1.5` is another epic's). Carry forward each one's **Code Map**, **Design Notes**, **Implementation Notes**, **Plan Change Log**, and **Tasks & Acceptance**, where present, as continuity context for step-02.
    - **Anything else:**
      {% if initiative_folder == config.output_folder %}
      - List `{{ config.output_folder }}/`.
@@ -54,6 +54,7 @@ This runs on the output of `tickets.py find` for one ticket. Set `ticket_args` t
        - **Architecture** (`architecture-*/architecture-*.md`) — technical design decisions and constraints
        - **UX/Design** (`ux-*/`, with `DESIGN.md` and `EXPERIENCE.md`) — user experience and interaction design
        - **Product Brief** (`brief-*/brief-*.md`) — project vision and scope
+       - **Research** (`research-*/research-*.md`) — cited evidence; a `type: codebase` one says how the code works and how it got that way, as of the commit in its frontmatter
      - When the listing holds a ticket file for this work, read it first and in full and do not re-read its `sources:`; open a file its References or `companions:` name only for a need the ticket points at. With no ticket, load the planning documents that fit the intent.
 2. Resolve intent from the invocation prompt and loaded artifacts. Do not fantasize or leave open questions. If the intent cannot be resolved, HALT with status `blocked` and the unresolved questions as blocking condition.
 3. Version control sanity check. If version control is unavailable, skip this check. Otherwise require a clean working tree, a branch that fits the intent, and writable repository metadata. For Git, run `git add --refresh -- .`, then confirm the tree is still clean; on failure or change, HALT with status `blocked` and blocking condition `version-control metadata not writable`. For a ticket from the tree, judge the branch against the epic, not the story. HALT on a dirty tree or obvious branch mismatch.
