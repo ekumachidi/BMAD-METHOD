@@ -68,13 +68,7 @@ initiative's lines.
 
 ## Planning Skills and What They Produce
 
-Every skill in this chapter writes a document you can hand on. The table runs
-from analysis through planning to solutioning; each chapter page is linked
-from the first skill it covers and explains when its skills fit. In an
-installed project, `bmad` recommends the next one. Each document lands in
-its own `<type>-<slug>/` folder inside the active initiative's folder, or
-directly in the output folder (`_bmad-output` by default) when no initiative
-is active.
+Every skill in this chapter writes a document you can hand on. The table runs from analysis through planning to solutioning; each chapter page is linked from the first skill it covers and explains when its skills fit. In an installed project, `bmad` recommends the next one. Each document lands in its own `<type>-<slug>/` folder inside the active initiative's folder, or directly in the output folder (`_bmad-output` by default) when no initiative is active. A `bmad-prd`, `bmad-ux`, or `bmad-architecture` run on an epic lands in that epic's folder instead.
 
 | Skill                           | Purpose                                                                                                                                        | Produces                                                                            |
 | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
@@ -158,13 +152,9 @@ See [Finish an Epic](../build/finish-an-epic.md).
 Use the full BMad flow for a greenfield product, a multi-epic initiative, or
 work likely to need roughly 20 or more implementation sessions.
 
-Prepare only the planning the project actually needs from the table above
-([Plan Inside an Organization](./plan-inside-an-organization.md) covers who
-owns which document and where sign-off happens). Then give the documents to
-Sofia, who fills the initiative's requirements and slices it into epics,
-track the stories with
-[Break Work into Stories and Track It](./break-work-into-stories-and-track-it.md),
-and close each epic with [Finish an Epic](../build/finish-an-epic.md).
+Prepare only the planning the project actually needs from the table above ([Plan Inside an Organization](./plan-inside-an-organization.md) covers who owns which document and where sign-off happens). Then give the documents to Sofia, who fills the initiative's requirements and slices it into epics. Each epic starts thin: before its stories are planned, ask Sofia to refine it. On a small initiative that is a single question; on a larger one she names what is still open, with her pick for each, and you can add a PRD, UX, architecture, or research run on the epic itself. Track the stories with [Break Work into Stories and Track It](./break-work-into-stories-and-track-it.md), and close each epic with [Finish an Epic](../build/finish-an-epic.md).
+
+When the work is more than one initiative's worth, Sofia proposes a parent initiative that lists its child initiatives in build order. Each child is planned and built like any other initiative.
 
 These documents coordinate implementation. They do not replace Build. Each
 epic still becomes a sequence of one-session units. Independent epic streams

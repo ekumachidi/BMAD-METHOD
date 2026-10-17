@@ -33,6 +33,14 @@ Each document has one skill that writes it, so give it one owner. One person can
 
 Several engineers can each take an epic at once. An epic-level spine inherits the parent spine's decisions as binding.
 
+## Large initiatives
+
+Epics are split by outcome, deployment and slice size, not by who builds them. A team that wants another rule sets `slice_to_epics` in `_bmad/custom/bmad-agent-po.toml`.
+
+Slicing writes each epic thin. Before its stories are planned, talk to Sofia the Product Owner to refine it ("refine the booking epic"): she names what is still open, with her pick for each. On a large initiative, the user may flesh an epic out with `bmad-prd`, `bmad-ux` or `bmad-architecture` run on the epic, or `bmad-deep-recon`. Those runs land in the epic's folder and become its companions.
+
+When the work is more than one initiative's worth, talk to Sofia the Product Owner to propose a parent initiative. It holds the Requirements and decisions its children share and the order between them, and no epics or stories. Each child is an ordinary initiative, planned and built as usual, that names the parent in `sources:`. Set the active initiative to the child being worked, or to the parent to see the whole.
+
 ## Where sign-off happens
 
 Each moment produces a written result an approval can attach to. Advise placing existing approvals here.

@@ -131,14 +131,7 @@ again with the change and she updates the sections in place, keeps every `R`
 id stable, and names the entries whose `covers` cite a changed id. The PRD,
 UX, and architecture skills can run in any order and feed the same ticket.
 
-When the ticket's lines read as several slices, she offers once to slice. To
-split at any time, say "slice this initiative", which cuts it into epics, or
-"incept this epic", which plans one epic with you in build order and records
-the stories in the epic's `tickets.toml`, each citing the epic's `R` ids. A
-constraint or design decision that comes up while slicing goes back into the
-ticket's requirements as an update. See
-[Choose a Planning Path](./choose-a-planning-path.md#1-start-epic-sized-work)
-for how the epic then runs.
+When the ticket's lines read as several slices, she offers once to slice. To split at any time, say "slice this initiative", which cuts it into epics and writes each one thin; "refine this epic", which works out with you what its stories must agree on and writes its requirements; or "incept this epic", which plans one epic with you in build order and records the stories in the epic's `tickets.toml`, each citing the epic's `R` ids. A constraint or design decision that comes up while slicing goes back into the ticket's requirements as an update. See [Choose a Planning Path](./choose-a-planning-path.md#1-start-epic-sized-work) for how the epic then runs.
 
 To run the planned stories unattended, explicitly dispatch each ticket to
 [`bmad-build-auto`](../build/autonomous-development-loops.md) as `ticket <ref>`,

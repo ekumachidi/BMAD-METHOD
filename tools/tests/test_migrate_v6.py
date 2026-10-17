@@ -480,6 +480,38 @@ class FoldSpecsTests(unittest.TestCase):
         self.assert_references_resolve(epic / "story-launch-angle.md")
         self.assertEqual(self.fold()["folded"], [])
 
+    def test_a_spec_folder_in_an_epic_of_the_tickets_layout_folds_and_maps_the_epics_tickets(self):
+        epic = self.initiative / "tickets" / "epic-ball"
+        write(
+            epic / "epic-ball.md", EPIC_BALL.replace("initiative-golf/epic-ball/", "initiative-golf/tickets/epic-ball/")
+        )
+        write(
+            epic / "tickets" / "tickets.toml",
+            '[[entry]]\nid = 2\ntype = "story"\ntitle = "Launch angle"\ncovers = ["CAP-2"]\n',
+        )
+        write(
+            epic / "tickets" / "story-launch-angle.md",
+            "---\nid: 2\ntype: story\ncovers: [CAP-2]\n---\n\n# Launch angle\n\n## References\n\n"
+            "- spec — ../spec-ball/spec-ball.md, CAP-2\n",
+        )
+        write(
+            epic / "spec-ball" / "spec-ball.md",
+            spec_frontmatter(companions="[glossary.md]", sources="[../../../prd-golf/prd-golf.md]") + SPEC_BODY,
+        )
+        write(epic / "spec-ball" / "glossary.md", "Carry: distance in the air.\n")
+
+        (fold,) = self.fold()["folded"]
+
+        self.assertEqual(fold["ticket"], "_bmad-output/initiative-golf/tickets/epic-ball/epic-ball.md")
+        self.assertEqual(fold["companions"], ["_bmad-output/initiative-golf/tickets/epic-ball/glossary.md"])
+        self.assertFalse((epic / "spec-ball").exists())
+        self.assertIn('covers = ["R2"]', (epic / "tickets" / "tickets.toml").read_text(encoding="utf-8"))
+        story = (epic / "tickets" / "story-launch-angle.md").read_text(encoding="utf-8")
+        self.assertIn("covers: [R2]", story)
+        self.assertIn("- spec — ../epic-ball.md, R2\n", story)
+        self.assert_references_resolve(epic / "epic-ball.md")
+        self.assert_references_resolve(epic / "tickets" / "story-launch-angle.md")
+
     def test_the_spec_ids_follow_the_requirements_a_ticket_already_has(self):
         epic = self.write_epic_with_spec()
         write(

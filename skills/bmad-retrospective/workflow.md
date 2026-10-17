@@ -43,8 +43,8 @@ Activation is complete after all activation steps have run.
 | Input | Where | Use |
 |-------|-------|-----|
 | epic | invocation argument — an epic folder, or an epic id or slug in the active initiative — or chosen from the offer below | which epic to retro |
-| epic folder | `tickets.toml`, the epic file `epic-<slug>.md` (the folder's name plus `.md`), one `<type>-<slug>-plan.md` per ticket, and a story file where a ticket was pulled | the record the epic left |
-| initiative file | the epic folder's parent's same-named file | opened only for a `covers` id the epic file does not restate |
+| epic folder | the epic file `epic-<slug>.md` (the folder's name plus `.md`), and in its `tickets/` folder the `tickets.toml`, one `<type>-<slug>-plan.md` per ticket, and a story file where a ticket was pulled | the record the epic left |
+| initiative file | `<initiative>/<initiative>.md`, the epic folder being `<initiative>/tickets/epic-<slug>/` | opened only for a `covers` id the epic file does not restate |
 | companions | the files the epic file lists in `companions:` | opened only for a section the epic or a ticket cites; requirements come from the ticket |
 | previous retro (optional) | `<folder name>-retrospective.md` in the previous epic's folder: run `status` with no folder for the `epics` order; the previous epic's folder is the sibling folder of that name | check whether last epic's actions landed |
 | session logs (optional) | conversation/session records for the epic's tickets | process lessons; record the gap when absent |

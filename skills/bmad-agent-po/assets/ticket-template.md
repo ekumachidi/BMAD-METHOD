@@ -3,7 +3,7 @@ tracker_id: ""   # with remote (url): set at publish on a tracker, on a story by
 id: [story: its tickets.toml entry id, or the folder's `next_id` if none; cut on a container]
 type: [initiative | epic | story]
 title: "[Container: its outcome. Story: what works when done]"
-parent: [the container folder above; none for an initiative or a backlog/ story]
+parent: [the parent container's folder name; none for an initiative or a backlog/ story]
 covers: [epic: parent ids it owns; story: epic ids it serves; cut on an initiative. Constraints go in References, not here]
 sources: []   # every input SPEC derived Requirements from, paths from {project-root}; each is re-read on update; never the memlog
 companions: []   # files downstream reads beside this ticket, written or adopted by SPEC, paths from {project-root}
@@ -11,12 +11,12 @@ after: []   # container: epics it waits on; epic order is in tickets.toml. Story
 assignee: ""   # story: only a tracker's, via `tickets.py mirror`; cut on a container
 # container: add status: in-progress | done | dropped when its first ticket starts
 # a story's status, assignee, blocked_at, blocked_reason live in the plan beside this file, not here; tracker_status from tracker sync
-refined: false   # story only, cut on a container: true once the user approves its criteria; on a pulled story only if its entry has `refine = true`
+refined: false   # story: true once the user approves its criteria; on a pulled story only if its entry has `refine = true`. Epic: false only when slicing writes it thin, until refined; else cut. Cut on an initiative
 hitl: false   # true when a person does part of the work; story only, cut on a container
 risk: [low|medium|high; container: a best guess until sliced, then its children's highest]
 ---
 
-<!-- At create or slicing a container gets all but Requirements and Constraints, which SPEC writes at the split or from an input. A pulled or reviewed story: Description, Verify: line, References, local Notes; refining adds numbered criteria and Boundaries. Done and dropped tickets stay as written. An initiative is the business outcome its epics serve, usually spanning quarters and more than one boundary; for a solo developer or small team a whole product is a fine initiative. -->
+<!-- At create a container gets all but Requirements and Constraints, which SPEC writes from an input. An epic written at slicing gets Description, Outcome, Boundaries, Done when as far as known, and References to the parent; Requirements and Constraints come when it is refined. A pulled or reviewed story: Description, Verify: line, References, local Notes; refining adds numbered criteria and Boundaries. Done and dropped tickets stay as written. An initiative is the business outcome its epics serve, usually spanning quarters and more than one boundary; for a solo developer or small team a whole product is a fine initiative. -->
 
 # [Title]
 
@@ -59,7 +59,7 @@ risk: [low|medium|high; container: a best guess until sliced, then its children'
 
 - parent — [path or url, section Requirements]
 - [companion — a file beside this one, named for its content]
-- [design — an adopted companion (../ux-<slug>/DESIGN.md) or a url]
+- [design — an adopted companion, such as DESIGN.md in the ux-<slug>/ run beside this file, or a url]
 
 ## Notes
 

@@ -41,7 +41,7 @@ prompt = "`{skill-root}/references/spec.md`"
 
 [[agent.menu]]
 code = "TICKETS"
-description = "initiative started, authored, or split into epics; an epic's stories planned or re-sliced"
+description = "initiative started, authored, split into epics, or put under a parent; an epic refined; an epic's stories planned or re-sliced"
 prompt = "`{skill-root}/references/slice.md`"
 
 [[agent.menu]]
@@ -108,7 +108,7 @@ ticket_template = "{skill-root}/assets/ticket-template.md"
 bug_template = "{skill-root}/assets/bug-template.md"
 # Spike template: Approach, `Verify:` lines instead of Given/When/Then (deliberate). Lands in references/ticket.md.
 spike_template = "{skill-root}/assets/spike-template.md"
-# `tickets.toml` entry and epic table keys; `tickets.py` ignores unknown ones. Lands in references/slice.md.
+# `tickets.toml` entry, epic and initiative table keys; `tickets.py` ignores unknown ones. Lands in references/slice.md.
 tickets_template = "{skill-root}/assets/tickets-template.toml"
 # Tracker publishing: at_inception (whole breakdown) or on_start (each ticket); user can override; other values halt the render; on the repo store, approval commits and this key does not apply. Lands in references/board.md, Publish.
 publication = "at_inception"
@@ -149,5 +149,5 @@ Closing every child does not close the parent. Run the closure check in `validat
 
 # Epic sizing norm. Lands in references/slice.md, Epic into stories.
 tickets_story_count = """
-Eight to twelve stories is typical, not a limit; one owner's lane can hold more, two owners fewer. Past that, offer a split first; the user decides.\
+Eight to twelve stories is typical, not a limit. Past that, offer a split first; the user decides.\
 """

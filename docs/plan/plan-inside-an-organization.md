@@ -138,6 +138,14 @@ left open. Run integration checks and a retrospective at every epic boundary,
 not only at the end. [Design UX and Architecture](./design-ux-and-architecture.md)
 shows what goes wrong without the spine.
 
+Sofia cuts epics by outcome, deployment, and slice size, not by who builds them. If your organization cuts epics by its own rule, tell her and she offers to save it to `_bmad/custom/bmad-agent-po.toml`.
+
+Each epic starts thin, with its scope agreed and its detail left open. Ask Sofia to refine each epic before its stories are planned. She says what is already settled and names each open point with her pick: settle it now, spike it, or leave it to the stories. On a large initiative you can flesh an epic out further with a `bmad-prd`, `bmad-ux` or `bmad-architecture` run on the epic, or research with `bmad-deep-recon`. Those runs land in the epic's folder and become its companions, so whoever takes the epic finds them beside its file.
+
+## More Than One Initiative
+
+When the work is more than one initiative's worth, such as a program of several products, Sofia proposes a parent initiative instead of nesting deeper. The parent holds the requirements and decisions its children share and the order between them; it has no epics or stories of its own. Each child is an ordinary initiative with its own epics and stories, citing the parent's requirements. Set the active initiative to the child being worked on, or to the parent to see the whole program.
+
 ## When Requirements Change Mid-Flight
 
 They will. The path for a change is the same as the path for the original:

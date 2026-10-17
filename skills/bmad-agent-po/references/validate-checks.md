@@ -30,15 +30,16 @@ Every entry in the epic's `tickets.toml`, draft or committed, pulled or not.
 
 ## Tree
 
-The initiative, its `tickets.toml`, draft or committed, and the epic envelopes once written.
+The initiative, its `tickets.toml`, draft or committed, and the epic files once written; for a parent initiative, the child initiatives in place of epics.
 
 - Every initiative requirement has an accountable epic or agreed deferral; shared ones say which part each epic delivers; no unexplained overlap.
 - Each epic's `covers` cites parent ids; each Requirements line names in parentheses its parent id, or its source section if the parent lacks it; a child's `covers` resolves through the Requirements line to a parent id.
 - Every source id on a Requirements line exists in a `sources:` file, every parent id in the parent's Requirements; every adopted design or architecture document is in `companions:`.
 - Every unit the source touches is an epic, out of scope, or a touch point (consumed or configured only, named in the initiative's Boundaries with its owner).
 - Each decision several epics adopt has one home: an architecture spine section, or an opening-epic entry (first `[[epic]]`) the others wait on.
-- Every written epic envelope has Outcome, Done when (including production delivery), boundaries, upstream coverage, and references; a future epic needs no breakdown, its Requirements being the parent ids it owns; the initiative's `tickets.toml` lists every epic in build order, each `after` naming what it needs, and `tickets.py status` on the initiative shows no cycle or `order_conflict`; it opens with a platform-baseline epic, or its first epic's first stories, or a `Decision:` line saying why not.
-- With epics, no leaf sits directly under the initiative.
+- Every written epic file has Outcome, Done when (including production delivery), Boundaries, its `covers`, and references; one with `refined: false` needs no Requirements or breakdown yet; the initiative's `tickets.toml` lists every epic in build order, each `after` naming what it needs, and `tickets.py status` on the initiative shows no cycle or `order_conflict`; it opens with a platform-baseline epic, or its first epic's first stories, or a `Decision:` line saying why not.
+- A parent initiative's `tickets.toml` lists every child in build order, each `after` naming what it needs; every child's `sources:` lists the parent's file; `tickets.py status` on the parent shows no `order_conflict`.
+- The initiative's `tickets.toml` lists child initiatives, epics, or entries, one kind only; with epics, no leaf sits in the initiative's `tickets/` folder.
 
 {% if workflow.checks.tree %}
 {{ workflow.checks.tree }}
@@ -46,7 +47,7 @@ The initiative, its `tickets.toml`, draft or committed, and the epic envelopes o
 
 ## Dependencies
 
-An item is a set entry or tree epic.
+An item is a set entry, a tree epic, or a parent's child initiative.
 
 - Needs: what each item needs to start and to run its check is built by it or its `after`.
 - Collisions: items with no dependency path share no code, config, schema, or setup; else add an `after` or merge them.

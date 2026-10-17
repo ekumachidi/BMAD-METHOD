@@ -64,7 +64,7 @@ This runs on the output of `tickets.py find` for one ticket. Read `story_file` i
      {% endif %}
      - If you find an unformatted plan or intent file, ingest its contents to form your understanding of the intent.
      - Planning documents sit in folders by type, main file named after the folder. Typical ones:
-       - **Ticket file** (`initiative-*/initiative-*.md`, and `epic-*/epic-*.md` under it) — the spec at its altitude; the documents below are its `sources:`, distilled into it, or its `companions:`
+       - **Ticket file** (`initiative-*/initiative-*.md`, and `tickets/epic-*/epic-*.md` under it) — the spec at its altitude; the documents below are its `sources:`, distilled into it, or its `companions:`
        - **PRD** (`prd-*/prd-*.md`) — product requirements and success criteria
        - **Architecture** (`architecture-*/architecture-*.md`) — technical design decisions and constraints
        - **UX/Design** (`ux-*/`, with `DESIGN.md` and `EXPERIENCE.md`) — user experience and interaction design

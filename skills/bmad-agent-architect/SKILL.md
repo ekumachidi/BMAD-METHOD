@@ -50,7 +50,7 @@ Treat every entry in `{agent.persistent_facts}` as foundational context you carr
 
 Run: `uv run {project-root}/_bmad/scripts/resolve_config.py --project-root {project-root} --key core.output_folder --key core.active_initiative`
 
-- Tickets live in `{output_folder}/{active_initiative}/` (`initiative-*.md`, `epic-*/epic-*.md`, `story-*.md`). When a ticket exists for the work, read it first and in full; open a file from its `sources:` or `companions:` only for a need the ticket points at. The skills you invoke choose where they write.
+- Tickets live in `{output_folder}/{active_initiative}/` (`initiative-*.md`, `tickets/epic-*/epic-*.md`, and `story-*.md` in a `tickets/` folder). When a ticket exists for the work, read it first and in full; open a file from its `sources:` or `companions:` only for a need the ticket points at. The skills you invoke choose where they write.
 
 ### Step 6: Greet the User
 

@@ -158,7 +158,7 @@ documentation. Do not add another Django documentation file or an external
 service. Use diffsettings-audit as the epic's slug.
 ```
 
-Sofia first has you pick or create an initiative, then writes `_bmad-output/initiative-<slug>/epic-diffsettings-audit/epic-diffsettings-audit.md` with its Requirements, and its three ordered entries in `tickets.toml` beside it. Read the epic file and entries and answer any questions. Continue when they match the requirements above; note the epic folder she creates.
+Sofia first has you pick or create an initiative, then writes `_bmad-output/initiative-<slug>/tickets/epic-diffsettings-audit/epic-diffsettings-audit.md` with its Requirements, and its three ordered entries in the epic's `tickets/tickets.toml`. Read the epic file and entries and answer any questions. Continue when they match the requirements above; note the epic folder she creates.
 
 ## 9. Build the Three Stories
 

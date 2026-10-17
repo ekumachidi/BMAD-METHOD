@@ -10,7 +10,7 @@ Read a ticket, and its remote state if published, before changing it. Commit cha
 
 - `find`'s `<ref>` is `<epic id>.<entry id>`, an entry id with its epic folder, a tracker id, a file name, or an unbroken title phrase; for looser words, pick from `status`, asking when several fit. Its `story_file` is null until pulled; `plan` is the plan's path, existing or not.
 - `tickets.py next [<folder>]` groups open tickets by next step; `tickets.py status [<folder>]` lists every ticket.
-- `<folder>` is an epic folder name, `backlog`, or the initiative, by default the active one, where `next` and `status` add a `backlog` key to show.
+- `<folder>` is an epic folder name, `backlog`, or the initiative, by default the active one, where `next` and `status` add a `backlog` key to show. On a parent initiative they list its child initiatives under `initiatives`.
 - With a tracker, sync first (Tracker sync) and pass `--synced` to `next`.
 
 Act with the user on any non-empty key:

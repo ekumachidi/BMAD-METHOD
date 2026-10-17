@@ -79,14 +79,24 @@ def run(*args, cwd=None, stdin=None):
     )
 
 
+def tk(folder):
+    """A folder's tickets folder, made when missing; a backlog, with no file of its own, is its own."""
+    if not (folder / f"{folder.name}.md").is_file():
+        return folder
+    (folder / "tickets").mkdir(exist_ok=True)
+    return folder / "tickets"
+
+
 class TreeCase(unittest.TestCase):
-    """A temp project with `_bmad/custom/` and the epic `out/initiative-checkout/epic-cart`."""
+    """A temp project with `_bmad/custom/` and the epic `out/initiative-checkout/tickets/epic-cart`."""
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name)
         (self.root / "_bmad" / "custom").mkdir(parents=True)
         self.initiative = self.root / "out" / "initiative-checkout"
+        self.initiative.mkdir(parents=True)
+        (self.initiative / "initiative-checkout.md").write_text("---\ntype: initiative\n---\n# Checkout\n")
         self.epic = self.add_epic("epic-cart")
         self.write_store("repo")
 
@@ -100,7 +110,7 @@ class TreeCase(unittest.TestCase):
         )
 
     def add_epic(self, slug, status="", after="[]"):
-        folder = self.initiative / slug
+        folder = self.initiative / "tickets" / slug
         folder.mkdir(parents=True)
         line = f"status: {status}\n" if status else ""
         (folder / f"{slug}.md").write_text(f"---\ntype: epic\n{line}after: {after}\n---\n# {slug}\n")
@@ -115,7 +125,7 @@ class TreeCase(unittest.TestCase):
         return json.loads(run("status", str(folder)).stdout)["tickets"]
 
     def add(self, name, text, folder=None):
-        ((folder or self.epic) / name).write_text(text, encoding="utf-8")
+        (tk(folder or self.epic) / name).write_text(text, encoding="utf-8")
 
     def seed(self, s1="", s2="", s3=""):
         self.add("story-scaffold.md", ticket(s1, 1, hitl="true"))
@@ -126,14 +136,30 @@ class TreeCase(unittest.TestCase):
 
     def pricing(self):
         pricing = self.add_epic("epic-pricing")
-        (pricing / "tickets.toml").write_text(
+        (tk(pricing) / "tickets.toml").write_text(
             '[[entry]]\nid = 1\ntype = "story"\ntitle = "Pricing contract"\n\n'
             '[[entry]]\nid = 2\ntype = "story"\ntitle = "Pricing rules"\nafter = [1]\n'
         )
-        (self.initiative / "tickets.toml").write_text(
+        (tk(self.initiative) / "tickets.toml").write_text(
             '[[epic]]\nid = 1\nslug = "epic-pricing"\n\n[[epic]]\nid = 2\nslug = "epic-cart"\n'
         )
         return pricing
+
+    SHOP = (
+        '[[initiative]]\nid = 1\nslug = "initiative-checkout"\ntitle = "Checkout"\n\n'
+        '[[initiative]]\nid = 2\nslug = "initiative-payments"\ntitle = "Payments"\n'
+        'after = [{ initiative = 1, needs = "the cart total" }]\n\n'
+        '[[initiative]]\nid = 3\nslug = "initiative-refunds"\ntitle = "Refunds"\n'
+        'after = [{ initiative = "initiative-payments" }, { initiative = 1 }]\n'
+    )
+
+    def shop(self, text=None):
+        """The parent initiative `out/initiative-shop`; of its children only initiative-checkout has a folder."""
+        parent = self.root / "out" / "initiative-shop"
+        parent.mkdir(exist_ok=True)
+        (parent / "initiative-shop.md").write_text("---\ntype: initiative\n---\n# Shop\n")
+        (tk(parent) / "tickets.toml").write_text(text or self.SHOP)
+        return parent
 
 
 class TicketsTests(TreeCase):
@@ -242,7 +268,7 @@ covers = ["R2", "R3"]
 """
 
     def breakdown_epic(self, text=None):
-        (self.epic / "tickets.toml").write_text(text or self.BREAKDOWN, encoding="utf-8")
+        (tk(self.epic) / "tickets.toml").write_text(text or self.BREAKDOWN, encoding="utf-8")
 
     def test_text_outside_ascii_is_read_and_written_as_utf8(self):
         self.breakdown_epic(self.BREAKDOWN.replace('title = "Scaffold"', 'title = "Café ✓ menu"'))
@@ -252,7 +278,7 @@ covers = ["R2", "R3"]
         self.assertEqual(out["ready_to_start"][0]["title"], "Café ✓ menu")
         r = subprocess.run([sys.executable, str(SCRIPT), "pull", str(self.epic), "1"], capture_output=True, check=False)
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertIn("# Café ✓ menu", (self.epic / "story-cafe-menu.md").read_text(encoding="utf-8"))
+        self.assertIn("# Café ✓ menu", (tk(self.epic) / "story-cafe-menu.md").read_text(encoding="utf-8"))
 
     def test_titles_that_slug_alike_get_their_own_file_and_plan(self):
         self.breakdown_epic(
@@ -267,13 +293,13 @@ covers = ["R2", "R3"]
         self.assertEqual(plans, ["story-cafe-menu-plan.md", "story-cafe-menu-2-plan.md"])
 
     def test_a_leaf_file_with_a_byte_order_mark_is_read(self):
-        (self.epic / "story-scaffold.md").write_bytes(b"\xef\xbb\xbf" + ticket("done", 1).encode("utf-8"))
+        (tk(self.epic) / "story-scaffold.md").write_bytes(b"\xef\xbb\xbf" + ticket("done", 1).encode("utf-8"))
         rows = self.status_rows(self.epic)
         self.assertEqual([(r["file"], r["state"]) for r in rows], [("story-scaffold.md", "done")])
 
     def test_mark_keeps_a_plans_crlf_line_endings_and_byte_order_mark(self):
         self.breakdown_epic()
-        path = self.epic / "story-scaffold-plan.md"
+        path = tk(self.epic) / "story-scaffold-plan.md"
         text = plan(1, "in-progress").replace("\n", "\r\n")
         path.write_bytes(b"\xef\xbb\xbf" + text.encode("utf-8"))
         self.mark(str(self.epic), "1", "done")
@@ -453,7 +479,7 @@ covers = ["R2", "R3"]
         # Pulled, the file's Notes hold it.
         self.assertEqual(run("pull", str(self.epic), "1").returncode, 0)
         self.assertEqual({e["id"]: e for e in self.next()["blocked"]}[1]["unknown"], "Which host?")
-        leaf = self.epic / "story-scaffold.md"
+        leaf = tk(self.epic) / "story-scaffold.md"
         text = leaf.read_text(encoding="utf-8")
         leaf.write_text(text.replace("- Unknown: Which host?", "- Decision: the EU host."), encoding="utf-8")
         out = self.next()
@@ -504,7 +530,7 @@ covers = ["R2", "R3"]
         r = self.mirror([{"ref": "1", "tracker_status": "done"}])
         self.assertEqual(r.returncode, 2)
         self.assertIn("no tracker", r.stderr)
-        self.assertEqual(list(self.epic.glob("story-*.md")), [])
+        self.assertEqual(list(tk(self.epic).glob("story-*.md")), [])
 
     def test_mirror_pulls_a_leaf_and_writes_only_the_keys_given(self):
         self.write_store("jira")
@@ -529,7 +555,7 @@ covers = ["R2", "R3"]
             [("2", "story-ui-shell.md", True), ("1", "story-scaffold.md", True)],
         )
         self.assertEqual(out["unmatched"], [])
-        text = (self.epic / "story-ui-shell.md").read_text(encoding="utf-8")
+        text = (tk(self.epic) / "story-ui-shell.md").read_text(encoding="utf-8")
         for line in (
             'tracker_id: "42"',
             'remote: "https://x.test/42"',
@@ -552,7 +578,7 @@ covers = ["R2", "R3"]
         r = self.mirror([{"tracker_id": "41", "tracker_status": "review", "assignee": ""}])
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertFalse(json.loads(r.stdout)["mirrored"][0]["pulled"])
-        text = (self.epic / "story-scaffold.md").read_text(encoding="utf-8")
+        text = (tk(self.epic) / "story-scaffold.md").read_text(encoding="utf-8")
         self.assertIn("\ntracker_status: review\n", text)
         self.assertNotIn("assignee", text)
         self.assertIn('\ntracker_id: "41"\n', text)
@@ -566,7 +592,7 @@ covers = ["R2", "R3"]
         out = json.loads(r.stdout)
         self.assertEqual([m["file"] for m in out["mirrored"]], ["story-scaffold.md"])
         self.assertEqual([u["ref"] for u in out["unmatched"]], ["SHOP-12"])
-        self.assertEqual([p.name for p in self.epic.glob("s*.md")], ["story-scaffold.md"])
+        self.assertEqual([p.name for p in tk(self.epic).glob("s*.md")], ["story-scaffold.md"])
         self.assertEqual(self.status_rows(self.epic)[0]["state"], "done")
         self.add("story-ui-shell.md", ticket("", 2, tracker_id='"3"'))
         r = self.mirror([{"tracker_id": "3", "tracker_status": "backlog"}])
@@ -586,7 +612,7 @@ covers = ["R2", "R3"]
         self.write_store("linear")
         self.breakdown_epic()
         self.add("story-scaffold.md", ticket("", 1, tracker_id='"SHOP-1"'))
-        before = (self.epic / "story-scaffold.md").read_bytes()
+        before = (tk(self.epic) / "story-scaffold.md").read_bytes()
         # A known ticket now waits on a tracker item the tree does not hold yet.
         r = self.mirror(
             [{"tracker_id": "SHOP-1", "after": ["SHOP-2"]}, {"tracker_id": "SHOP-2", "tracker_status": "backlog"}]
@@ -595,19 +621,19 @@ covers = ["R2", "R3"]
         err = json.loads(r.stderr)
         self.assertIn("nothing was mirrored", err["error"])
         self.assertEqual([u["ref"] for u in err["unmatched"]], ["SHOP-2"])
-        self.assertEqual((self.epic / "story-scaffold.md").read_bytes(), before)
+        self.assertEqual((tk(self.epic) / "story-scaffold.md").read_bytes(), before)
 
     def test_a_tracker_id_on_two_tickets_is_refused_and_a_mirror_that_makes_one_rolls_back(self):
         self.write_store("linear")
         self.breakdown_epic()
         self.add("story-scaffold.md", ticket("", 1, tracker_id='"SHOP-1"'))
-        before = (self.epic / "story-scaffold.md").read_bytes()
+        before = (tk(self.epic) / "story-scaffold.md").read_bytes()
         # The same id again, in another case, would make `after = ["SHOP-1"]` point at whichever was read last.
         r = self.mirror([{"ref": 2, "tracker_id": "shop-1"}])
         self.assertEqual(r.returncode, 1)
         self.assertIn("more than one ticket", json.loads(r.stderr)["error"])
-        self.assertEqual((self.epic / "story-scaffold.md").read_bytes(), before)
-        self.assertFalse((self.epic / "story-ui-shell.md").exists())
+        self.assertEqual((tk(self.epic) / "story-scaffold.md").read_bytes(), before)
+        self.assertFalse((tk(self.epic) / "story-ui-shell.md").exists())
         self.add("story-ui-shell.md", ticket("", 2, after="[1]", tracker_id='"SHOP-1"'))
         r = run("status", str(self.epic))
         self.assertEqual(r.returncode, 1)
@@ -617,7 +643,7 @@ covers = ["R2", "R3"]
         self.write_store("jira")
         self.breakdown_epic()
         self.add("story-scaffold.md", ticket("", 1))
-        before = (self.epic / "story-scaffold.md").read_text(encoding="utf-8")
+        before = (tk(self.epic) / "story-scaffold.md").read_text(encoding="utf-8")
         for items, message in (
             ([{"ref": 1, "tracker_status": "done"}, {"ref": 2, "status": "done"}], "never mirrored"),
             ([{"ref": 1, "tracker_status": "closed"}], "tracker_status"),
@@ -628,17 +654,17 @@ covers = ["R2", "R3"]
             r = self.mirror(items)
             self.assertEqual(r.returncode, 1, items)
             self.assertIn(message, json.loads(r.stderr)["error"])
-            self.assertEqual((self.epic / "story-scaffold.md").read_text(encoding="utf-8"), before)
-            self.assertFalse((self.epic / "story-ui-shell.md").exists())
+            self.assertEqual((tk(self.epic) / "story-scaffold.md").read_text(encoding="utf-8"), before)
+            self.assertFalse((tk(self.epic) / "story-ui-shell.md").exists())
         r = run("mirror", str(self.epic), stdin="not json")
         self.assertEqual(r.returncode, 1)
 
     def test_mirror_keeps_a_leafs_crlf_line_endings(self):
         self.write_store("jira")
         self.breakdown_epic()
-        (self.epic / "story-scaffold.md").write_bytes(ticket("", 1).replace("\n", "\r\n").encode("utf-8"))
+        (tk(self.epic) / "story-scaffold.md").write_bytes(ticket("", 1).replace("\n", "\r\n").encode("utf-8"))
         self.assertEqual(self.mirror([{"ref": 1, "tracker_status": "done"}]).returncode, 0)
-        raw = (self.epic / "story-scaffold.md").read_bytes()
+        raw = (tk(self.epic) / "story-scaffold.md").read_bytes()
         self.assertIn(b"\r\ntracker_status: done\r\n", raw)
         self.assertNotIn(b"\n", raw.replace(b"\r\n", b""))
 
@@ -661,7 +687,7 @@ covers = ["R2", "R3"]
         r = run("pull", str(self.epic), "1")
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(json.loads(r.stdout), {"file": "story-scaffold-the-cart.md", "refine": True})
-        text = (self.epic / "story-scaffold-the-cart.md").read_text(encoding="utf-8")
+        text = (tk(self.epic) / "story-scaffold-the-cart.md").read_text(encoding="utf-8")
         self.assertIn("## Requirements\n\nVerify: It runs.", text)
         self.assertIn("covers: [R1]", text)
         self.assertEqual(self.files(self.next()["ready_to_refine"]), ["story-scaffold-the-cart.md"])
@@ -697,13 +723,13 @@ covers = ["R2", "R3"]
     def test_pull_leaves_out_empty_fields_but_always_writes_after_and_hitl(self):
         self.breakdown_epic()
         run("pull", str(self.epic), "1")
-        head = (self.epic / "story-scaffold.md").read_text(encoding="utf-8").split("---")[1]
+        head = (tk(self.epic) / "story-scaffold.md").read_text(encoding="utf-8").split("---")[1]
         self.assertEqual(
             head, '\nid: 1\ntype: story\ntitle: "Scaffold"\nparent: epic-cart\ncovers: [R1]\nafter: []\nhitl: false\n'
         )
         self.assertEqual(self.next()["ready_to_start"][0]["state"], "backlog")
         run("pull", str(self.epic), "3")
-        head = (self.epic / "spike-tax-engine.md").read_text(encoding="utf-8").split("---")[1]
+        head = (tk(self.epic) / "spike-tax-engine.md").read_text(encoding="utf-8").split("---")[1]
         self.assertIn("\nafter: [1]\n", head)
         self.assertIn("\nhitl: true\n", head)
         self.assertNotIn("refined", head)
@@ -711,9 +737,9 @@ covers = ["R2", "R3"]
     def test_pull_ends_after_the_references(self):
         self.breakdown_epic()
         run("pull", str(self.epic), "1")
-        text = (self.epic / "story-scaffold.md").read_text(encoding="utf-8")
+        text = (tk(self.epic) / "story-scaffold.md").read_text(encoding="utf-8")
         self.assertTrue(
-            text.endswith("## References\n\n- parent — out/initiative-checkout/epic-cart/epic-cart.md\n"), text
+            text.endswith("## References\n\n- parent — out/initiative-checkout/tickets/epic-cart/epic-cart.md\n"), text
         )
 
     def test_find_by_cross_ref_id_file_tracker_id_and_title(self):
@@ -729,7 +755,7 @@ covers = ["R2", "R3"]
 
         hit = find(self.initiative, "2.1")
         self.assertEqual((hit["folder"], hit["id"], hit["file"]), ("epic-cart", 1, "story-scaffold.md"))
-        self.assertEqual(hit["story_file"], str((self.epic / "story-scaffold.md").resolve()))
+        self.assertEqual(hit["story_file"], str((tk(self.epic) / "story-scaffold.md").resolve()))
         self.assertNotIn("path", hit)
         self.assertEqual(find(self.epic, "3")["title"], "Tax engine?")
         self.assertIsNone(find(self.epic, "3")["story_file"])
@@ -760,7 +786,7 @@ covers = ["R2", "R3"]
             )
         )
         self.assertEqual(run("pull", str(self.epic), "1").returncode, 0)
-        text = (self.epic / "story-scaffold.md").read_text(encoding="utf-8")
+        text = (tk(self.epic) / "story-scaffold.md").read_text(encoding="utf-8")
         parent = (self.epic / "epic-cart.md").resolve().relative_to(self.root.resolve()).as_posix()
         self.assertIn(f"## References\n\n- parent — {parent}\n- SPINE.md#ad-8\n", text)
         self.assertIn("## Notes\n\n- Unknown: Which host?\n- Reuse the mailer.\n", text)
@@ -845,7 +871,7 @@ covers = ["R2", "R3"]
         pricing = self.pricing()
         self.seed()
         cases = (
-            (ticket("todo", 1), "epic-pricing/story-contract.md"),
+            (ticket("todo", 1), "epic-pricing/tickets/story-contract.md"),
             (ticket("draft", 1).replace("after: []", "after:\n  - 1"), "must be inline"),
             (ticket("draft", 1).replace("---\n\n# x", "\n# x"), "does not close"),
         )
@@ -872,7 +898,7 @@ covers = ["R2", "R3"]
     def test_initiative_view_spans_epics_in_file_order_and_reports_unpinned_after(self):
         self.pricing()
         self.breakdown_epic()
-        (self.initiative / "tickets.toml").write_text(
+        (tk(self.initiative) / "tickets.toml").write_text(
             '[[epic]]\nid = 1\nslug = "epic-pricing"\n\n'
             '[[epic]]\nid = 2\nslug = "epic-cart"\nafter = [{ epic = 1, needs = "the pricing contract" }]\n'
         )
@@ -890,20 +916,20 @@ covers = ["R2", "R3"]
         self.assertEqual([(e["slug"], e["id"]) for e in status["epics"]], [("epic-pricing", 1), ("epic-cart", 2)])
         self.assertEqual(status["tickets"][0]["blocks"], [2, "2.2"])
         self.assertEqual(status["longest_remaining_chain"][1:], ["2.2", "2.4"])
-        (self.initiative / "tickets.toml").write_text(
+        (tk(self.initiative) / "tickets.toml").write_text(
             '[[epic]]\nid = 1\nslug = "epic-pricing"\n\n[[epic]]\nid = 2\nslug = "epic-cart"\nafter = [{ epic = "epic-x" }]\n'
         )
         r = run("status", str(self.initiative))
         self.assertEqual(r.returncode, 1)
         self.assertIn("no epic listed", r.stderr)
-        (self.initiative / "tickets.toml").write_text(
+        (tk(self.initiative) / "tickets.toml").write_text(
             '[[epic]]\nid = 2\nslug = "epic-cart"\n\n[[epic]]\nid = 2\nslug = "epic-pricing"\n'
         )
         self.assertIn("two epics with id 2", run("status", str(self.initiative)).stderr)
 
     def test_status_shows_the_declared_epic_graph_before_and_after_inception(self):
         self.pricing()
-        (self.initiative / "tickets.toml").write_text(
+        (tk(self.initiative) / "tickets.toml").write_text(
             '[[epic]]\nid = 1\nslug = "epic-pricing"\n\n'
             '[[epic]]\nid = 2\nslug = "epic-cart"\nafter = [{ epic = 1, needs = "the pricing contract" }]\n'
         )
@@ -921,10 +947,10 @@ covers = ["R2", "R3"]
     def test_an_undeclared_or_backward_cross_epic_after_is_reported(self):
         self.pricing()
         self.breakdown_epic()
-        (self.initiative / "tickets.toml").write_text(
+        (tk(self.initiative) / "tickets.toml").write_text(
             '[[epic]]\nid = 1\nslug = "epic-pricing"\n\n[[epic]]\nid = 2\nslug = "epic-cart"\n'
         )
-        (self.initiative / "epic-pricing" / "tickets.toml").write_text(
+        (tk(tk(self.initiative) / "epic-pricing") / "tickets.toml").write_text(
             '[[entry]]\nid = 1\ntype = "story"\ntitle = "Pricing contract"\nafter = ["2.1"]\n'
         )
         for command, folder in (("status", self.initiative), ("next", self.initiative), ("status", self.epic)):
@@ -936,7 +962,7 @@ covers = ["R2", "R3"]
                 out["undeclared_after"], [{"epic": "epic-pricing", "after": "epic-cart", "ref": "1.1", "names": "2.1"}]
             )
             self.assertEqual(out["order_conflict"], [{"epic": "epic-pricing", "after": "epic-cart"}])
-        (self.initiative / "tickets.toml").write_text(
+        (tk(self.initiative) / "tickets.toml").write_text(
             '[[epic]]\nid = 1\nslug = "epic-pricing"\nafter = [{ epic = 2, needs = "the cart" }]\n\n'
             '[[epic]]\nid = 2\nslug = "epic-cart"\n'
         )
@@ -958,7 +984,7 @@ covers = ["R2", "R3"]
 
     def test_an_epic_gate_counts_once_and_its_order_before_inception(self):
         self.pricing()
-        (self.initiative / "tickets.toml").write_text(
+        (tk(self.initiative) / "tickets.toml").write_text(
             '[[epic]]\nid = 1\nslug = "epic-cart"\n\n[[epic]]\nid = 2\nslug = "epic-pricing"\n'
         )
         (self.epic / "epic-cart.md").write_text("---\ntype: epic\nafter: [epic-pricing]\n---\n# epic-cart\n")
@@ -976,7 +1002,7 @@ covers = ["R2", "R3"]
 
     def test_epics_need_an_id_a_slug_and_a_valid_after(self):
         self.pricing()
-        toml = self.initiative / "tickets.toml"
+        toml = tk(self.initiative) / "tickets.toml"
         good = toml.read_text(encoding="utf-8")
         for bad, message in (
             (good.replace("id = 2\n", ""), "needs an `id`"),
@@ -1016,11 +1042,11 @@ covers = ["R2", "R3"]
 
     def test_an_id_takes_letters_and_digits_wherever_a_number_goes(self):
         pricing = self.add_epic("epic-pricing")
-        (pricing / "tickets.toml").write_text(
+        (tk(pricing) / "tickets.toml").write_text(
             '[[entry]]\nid = "6a"\ntype = "story"\ntitle = "Pricing contract"\n\n'
             '[[entry]]\nid = 7\ntype = "story"\ntitle = "Pricing rules"\nafter = ["6a"]\n'
         )
-        (self.initiative / "tickets.toml").write_text(
+        (tk(self.initiative) / "tickets.toml").write_text(
             '[[epic]]\nid = "1b"\nslug = "epic-pricing"\n\n'
             '[[epic]]\nid = 2\nslug = "epic-cart"\nafter = [{ epic = "1b", needs = "prices" }]\n'
         )
@@ -1032,10 +1058,10 @@ covers = ["R2", "R3"]
         self.assertEqual(status["unpinned_after"] + status["undeclared_after"], [])
 
         self.assertEqual(run("pull", str(pricing), "7").returncode, 0)
-        self.assertIn("id: 7\n", (pricing / "story-pricing-rules.md").read_text(encoding="utf-8"))
-        self.assertIn("after: [6a]\n", (pricing / "story-pricing-rules.md").read_text(encoding="utf-8"))
+        self.assertIn("id: 7\n", (tk(pricing) / "story-pricing-rules.md").read_text(encoding="utf-8"))
+        self.assertIn("after: [6a]\n", (tk(pricing) / "story-pricing-rules.md").read_text(encoding="utf-8"))
         self.assertEqual(run("pull", str(pricing), "6a").returncode, 0)
-        self.assertIn("id: 6a\n", (pricing / "story-pricing-contract.md").read_text(encoding="utf-8"))
+        self.assertIn("id: 6a\n", (tk(pricing) / "story-pricing-contract.md").read_text(encoding="utf-8"))
         self.assertNotIn("drift", json.dumps(self.status_rows(pricing)))
 
         self.assertEqual([e["id"] for e in self.next()["blocked"]], ["2a"])
@@ -1046,7 +1072,7 @@ covers = ["R2", "R3"]
             found = json.loads(run("find", str(folder), ref).stdout)
             self.assertEqual((found["id"], found["state"]), ("6a", "done"))
         self.assertEqual(run("mark", str(self.epic), "2a", "in-review").returncode, 0)
-        self.assertIn("ticket: 2a\n", (self.epic / "story-totals-for-6a-plan.md").read_text(encoding="utf-8"))
+        self.assertIn("ticket: 2a\n", (tk(self.epic) / "story-totals-for-6a-plan.md").read_text(encoding="utf-8"))
         self.assertEqual(self.status_rows(self.epic)[0]["state"], "review")
 
     def test_two_files_sharing_an_id_error(self):
@@ -1057,11 +1083,11 @@ covers = ["R2", "R3"]
         self.assertIn("share the id 1", json.loads(r.stderr)["error"])
 
     def test_malformed_input_returns_json_error(self):
-        (self.epic / "story-bad.md").write_bytes(ticket("draft", 1).encode().replace(b"# x", b"\xff"))
+        (tk(self.epic) / "story-bad.md").write_bytes(ticket("draft", 1).encode().replace(b"# x", b"\xff"))
         r = run("next", str(self.epic))
         self.assertEqual(r.returncode, 1, r.stderr)
         self.assertIn("error", json.loads(r.stderr))
-        (self.epic / "story-bad.md").unlink()
+        (tk(self.epic) / "story-bad.md").unlink()
         self.seed()
         (self.root / "_bmad" / "custom" / "ticketing-store-config.toml").write_text("[tickets\nstore = ")
         r = run("next", str(self.epic))
@@ -1083,9 +1109,9 @@ covers = ["R2", "R3"]
 
     def test_mark_writes_a_plan_beside_the_leaf_and_never_the_leaf(self):
         self.seed()
-        leaf = (self.epic / "story-scaffold.md").read_text(encoding="utf-8")
+        leaf = (tk(self.epic) / "story-scaffold.md").read_text(encoding="utf-8")
         out = self.mark(str(self.epic), "1", "in-progress", "--assignee", "ann")
-        plan_file = self.epic / "story-scaffold-plan.md"
+        plan_file = tk(self.epic) / "story-scaffold-plan.md"
         self.assertEqual(
             out,
             {
@@ -1097,7 +1123,7 @@ covers = ["R2", "R3"]
                 "blocked_reason": "",
             },
         )
-        self.assertEqual((self.epic / "story-scaffold.md").read_text(encoding="utf-8"), leaf)
+        self.assertEqual((tk(self.epic) / "story-scaffold.md").read_text(encoding="utf-8"), leaf)
         self.assertEqual(
             plan_file.read_text(encoding="utf-8"),
             '---\ntitle: "x"\nticket: 1\nstatus: in-progress\nassignee: "ann"\n---\n',
@@ -1105,11 +1131,11 @@ covers = ["R2", "R3"]
         self.assertEqual(self.files(self.next()["in_progress"]), ["story-scaffold.md"])
 
     def test_mark_clears_the_leafs_blocking_fields_and_takes_a_literal_assignee(self):
-        path = self.epic / "story-scaffold.md"
+        path = tk(self.epic) / "story-scaffold.md"
         path.write_text(ticket("", 1, blocked_at="2026-09-05", blocked_reason="legal"))
         out = self.mark(str(self.epic), "1", "draft", "--assignee", "\\1")
         self.assertEqual(out["assignee"], "\\1")
-        text = (self.epic / "story-scaffold-plan.md").read_text(encoding="utf-8")
+        text = (tk(self.epic) / "story-scaffold-plan.md").read_text(encoding="utf-8")
         self.assertNotIn("blocked_at", text)
         self.assertIn('assignee: "\\\\1"\n', text)
         self.assertIn("blocked_reason", path.read_text(encoding="utf-8"))
@@ -1120,10 +1146,10 @@ covers = ["R2", "R3"]
         run("pull", str(self.epic), "1")
         self.add(
             "story-scaffold.md",
-            (self.epic / "story-scaffold.md").read_text().replace("---\n\n", 'assignee: "bob"\n---\n\n', 1),
+            (tk(self.epic) / "story-scaffold.md").read_text().replace("---\n\n", 'assignee: "bob"\n---\n\n', 1),
         )
         self.mark(str(self.epic), "1", "ready-for-dev")
-        text = (self.epic / "story-scaffold-plan.md").read_text(encoding="utf-8")
+        text = (tk(self.epic) / "story-scaffold-plan.md").read_text(encoding="utf-8")
         self.assertEqual(text, '---\ntitle: "Scaffold"\nticket: 1\nstatus: ready-for-dev\nassignee: "bob"\n---\n')
         self.assertEqual(
             [(e["file"], e["assignee"]) for e in self.next()["ready_to_start"]], [("story-scaffold.md", "bob")]
@@ -1154,7 +1180,7 @@ covers = ["R2", "R3"]
             },
         )
         self.assertIsNone(hit["story_file"])
-        self.assertEqual(hit["plan"], str(epic / "story-ui-shell-plan.md"))
+        self.assertEqual(hit["plan"], str(tk(epic) / "story-ui-shell-plan.md"))
         self.assertFalse(Path(hit["plan"]).exists())
         self.assertEqual(hit["epic_file"], str(epic / "epic-cart.md"))
 
@@ -1162,15 +1188,15 @@ covers = ["R2", "R3"]
         self.breakdown_epic()
         self.add("custom-name.md", plan(2, "in-progress"))
         hit = json.loads(run("find", str(self.epic), "2").stdout)
-        self.assertEqual(hit["plan"], str(self.epic.resolve() / "custom-name.md"))
+        self.assertEqual(hit["plan"], str(tk(self.epic).resolve() / "custom-name.md"))
         self.assertEqual(hit["status"], "in-progress")
 
     def test_find_on_a_refined_entry_names_its_story_file_and_the_plan_after_it(self):
         self.breakdown_epic(self.BREAKDOWN.replace('title = "Scaffold"', 'title = "Scaffold, renamed"'))
         self.add("story-scaffold.md", ticket("", 1))
         hit = json.loads(run("find", str(self.epic), "1").stdout)
-        self.assertEqual(hit["story_file"], str(self.epic.resolve() / "story-scaffold.md"))
-        self.assertEqual(hit["plan"], str(self.epic.resolve() / "story-scaffold-plan.md"))
+        self.assertEqual(hit["story_file"], str(tk(self.epic).resolve() / "story-scaffold.md"))
+        self.assertEqual(hit["plan"], str(tk(self.epic).resolve() / "story-scaffold-plan.md"))
 
     def test_find_on_a_pulled_entry_leaves_the_text_to_the_file(self):
         self.breakdown_epic(
@@ -1181,18 +1207,18 @@ covers = ["R2", "R3"]
             )
         )
         self.assertEqual(run("pull", str(self.epic), "1").returncode, 0)
-        leaf = self.epic / "story-scaffold.md"
+        leaf = tk(self.epic) / "story-scaffold.md"
         leaf.write_text(leaf.read_text(encoding="utf-8").replace("Which host?", "Which region?"), encoding="utf-8")
         hit = json.loads(run("find", str(self.epic), "1").stdout)
         self.assertEqual([hit[k] for k in ("description", "verify", "references", "notes")], ["", "", [], []])
         self.assertEqual(hit["unknown"], "Which region?")
-        self.assertEqual(hit["story_file"], str(self.epic.resolve() / "story-scaffold.md"))
+        self.assertEqual(hit["story_file"], str(tk(self.epic).resolve() / "story-scaffold.md"))
 
     def test_find_names_the_initiative_file_for_a_leaf_directly_under_it(self):
         solo = self.root / "out" / "initiative-solo"
         solo.mkdir()
         (solo / "initiative-solo.md").write_text("---\ntype: initiative\n---\n# Solo\n")
-        (solo / "tickets.toml").write_text('[[entry]]\nid = 1\ntype = "story"\ntitle = "Only"\n')
+        (tk(solo) / "tickets.toml").write_text('[[entry]]\nid = 1\ntype = "story"\ntitle = "Only"\n')
         hit = json.loads(run("find", str(solo), "1").stdout)
         self.assertEqual(hit["epic_file"], str(solo.resolve() / "initiative-solo.md"))
         self.assertIsNone(hit["story_file"])
@@ -1215,7 +1241,7 @@ covers = ["R2", "R3"]
 
     def test_mark_done_on_a_plan_only_entry_clears_blocking_and_keeps_the_plan(self):
         self.breakdown_epic()
-        path = self.epic / "story-ui-shell-plan.md"
+        path = tk(self.epic) / "story-ui-shell-plan.md"
         self.add(path.name, plan(2, "blocked", assignee="ann", blocked_at="2026-09-05", blocked_reason="legal"))
         before = path.read_text(encoding="utf-8")
         out = self.mark(str(self.epic), "2", "done")
@@ -1234,7 +1260,7 @@ covers = ["R2", "R3"]
 
     def test_mark_on_a_build_plan_keeps_its_body_and_other_frontmatter(self):
         self.breakdown_epic()
-        path = self.epic / "story-scaffold-plan.md"
+        path = tk(self.epic) / "story-scaffold-plan.md"
         text = plan(1, "in-progress").replace("# x\n", "# x\n\nbody: stays\n") + "## Code Review\n"
         self.add(path.name, text)
         self.mark(str(self.epic), "1", "in-review", "--assignee", "ann")
@@ -1259,7 +1285,7 @@ covers = ["R2", "R3"]
         self.breakdown_epic()
         self.mark(str(self.epic), "2", "ready-for-dev", "--assignee", "ann")
         self.assertEqual(
-            (self.epic / "story-ui-shell-plan.md").read_text(encoding="utf-8"),
+            (tk(self.epic) / "story-ui-shell-plan.md").read_text(encoding="utf-8"),
             '---\ntitle: "UI shell"\nticket: 2\nstatus: ready-for-dev\nassignee: "ann"\n---\n',
         )
         self.assertEqual(
@@ -1272,7 +1298,7 @@ covers = ["R2", "R3"]
         self.mark(str(self.epic), "UI shell", "blocked", "--blocked", 'waiting on legal: "terms"')
         today = date.today().isoformat()
         self.assertEqual(
-            (self.epic / "story-ui-shell-plan.md").read_text(encoding="utf-8"),
+            (tk(self.epic) / "story-ui-shell-plan.md").read_text(encoding="utf-8"),
             f'---\ntitle: "UI shell"\nticket: 2\nstatus: blocked\nblocked_at: "{today}"\n'
             'blocked_reason: "waiting on legal: \\"terms\\""\n---\n',
         )
@@ -1292,7 +1318,7 @@ covers = ["R2", "R3"]
     @unittest.skipIf(sys.platform == "win32", "Windows passes arguments as Unicode, so none is undecodable")
     def test_mark_with_an_undecodable_value_leaves_the_plan_unchanged(self):
         self.breakdown_epic()
-        path = self.epic / "story-scaffold-plan.md"
+        path = tk(self.epic) / "story-scaffold-plan.md"
         self.add(path.name, plan(1, "in-progress"))
         before = path.read_bytes()
         r = subprocess.run(
@@ -1310,7 +1336,7 @@ covers = ["R2", "R3"]
             r = run("mark", str(self.epic), "2", "done")
             self.assertEqual(r.returncode, 1, r.stdout)
             self.assertIn("story-ui-shell-plan.md", json.loads(r.stderr)["error"])
-            self.assertEqual((self.epic / "story-ui-shell-plan.md").read_text(encoding="utf-8"), text)
+            self.assertEqual((tk(self.epic) / "story-ui-shell-plan.md").read_text(encoding="utf-8"), text)
 
     def test_project_root_flag_finds_the_store_for_tickets_outside_the_project(self):
         self.write_store("jira")
@@ -1477,7 +1503,7 @@ covers = ["R2", "R3"]
         self.assertEqual([t["id"] for t in out["ready_to_start"]], [2, 3])
 
     def test_status_lists_a_declared_epic_before_its_folder_exists(self):
-        (self.initiative / "tickets.toml").write_text(
+        (tk(self.initiative) / "tickets.toml").write_text(
             '[[epic]]\nid = 1\nslug = "epic-base"\n\n'
             '[[epic]]\nid = 2\nslug = "epic-cart"\nafter = [{ epic = 1, needs = "the scaffold" }]\n'
         )
@@ -1496,13 +1522,13 @@ covers = ["R2", "R3"]
         )
 
     def test_an_after_naming_a_listed_epic_with_no_folder_says_so(self):
-        (self.initiative / "tickets.toml").write_text(
+        (tk(self.initiative) / "tickets.toml").write_text(
             '[[epic]]\nid = 1\nslug = "epic-base"\n\n[[epic]]\nid = 2\nslug = "epic-cart"\n'
         )
         self.breakdown_epic('[[entry]]\nid = 1\ntype = "story"\ntitle = "Scaffold"\nafter = ["epic-base"]\n')
         r = run("status", str(self.initiative))
         self.assertEqual(r.returncode, 1)
-        self.assertIn("has no folder yet; create epic-base/epic-base.md", json.loads(r.stderr)["error"])
+        self.assertIn("has no folder yet; create tickets/epic-base/epic-base.md", json.loads(r.stderr)["error"])
         self.add_epic("epic-base")
         self.assertEqual(run("status", str(self.initiative)).returncode, 0)
 
@@ -1541,7 +1567,7 @@ covers = ["R2", "R3"]
     def test_move_takes_the_entry_its_file_and_plan_along_and_rewrites_every_after(self):
         pricing = self.pricing()
         self.breakdown_epic()
-        (pricing / "tickets.toml").write_text(
+        (tk(pricing) / "tickets.toml").write_text(
             '[[entry]]\nid = 1\ntype = "story"\ntitle = "Pricing contract"\n\n'
             '[[entry]]\nid = 2\ntype = "story"\ntitle = "Pricing rules"\nafter = [1, "2.2"] # waits on the shell\n'
         )
@@ -1557,27 +1583,27 @@ covers = ["R2", "R3"]
         self.assertEqual(
             {r["where"]: r["after"] for r in out["rewritten"]},
             {
-                "epic-cart/tickets.toml entry 4": ["1.3", 3],
-                "epic-pricing/tickets.toml entry 2": [1, 3],
-                "epic-pricing/tickets.toml entry 3": ["2.1"],
-                "epic-pricing/story-ui-shell.md": ["2.1"],
+                "epic-cart/tickets/tickets.toml entry 4": ["1.3", 3],
+                "epic-pricing/tickets/tickets.toml entry 2": [1, 3],
+                "epic-pricing/tickets/tickets.toml entry 3": ["2.1"],
+                "epic-pricing/tickets/story-ui-shell.md": ["2.1"],
             },
         )
-        cart = (self.epic / "tickets.toml").read_text(encoding="utf-8")
+        cart = (tk(self.epic) / "tickets.toml").read_text(encoding="utf-8")
         self.assertTrue(cart.startswith("next_id = 5\n\n[[entry]]\nid = 1\n"), cart)
         self.assertNotIn("UI shell", cart)
         self.assertIn('after = ["1.3", 3]\n', cart)
-        text = (pricing / "tickets.toml").read_text(encoding="utf-8")
+        text = (tk(pricing) / "tickets.toml").read_text(encoding="utf-8")
         self.assertIn("after = [1, 3] # waits on the shell\n", text)
         self.assertTrue(
             text.endswith('[[entry]]\nid = 3\ntype = "story"\ntitle = "UI shell"\nafter = ["2.1"]\ncovers = ["R1"]\n'),
             text,
         )
-        self.assertEqual(sorted(p.name for p in self.epic.glob("story-*")), [])
-        head = (pricing / "story-ui-shell.md").read_text(encoding="utf-8").split("---")[1]
+        self.assertEqual(sorted(p.name for p in tk(self.epic).glob("story-*")), [])
+        head = (tk(pricing) / "story-ui-shell.md").read_text(encoding="utf-8").split("---")[1]
         for line in ("id: 3", "parent: epic-pricing", 'after: ["2.1"]'):
             self.assertIn(f"\n{line}\n", head)
-        self.assertIn("\nticket: 3\n", (pricing / "story-ui-shell-plan.md").read_text(encoding="utf-8"))
+        self.assertIn("\nticket: 3\n", (tk(pricing) / "story-ui-shell-plan.md").read_text(encoding="utf-8"))
         status = json.loads(run("status", str(self.initiative)).stdout)
         self.assertNotIn("problems", status)
         self.assertEqual({e["slug"]: e["next_id"] for e in status["epics"]}, {"epic-pricing": 4, "epic-cart": 5})
@@ -1588,7 +1614,7 @@ covers = ["R2", "R3"]
         self.pricing()
         self.breakdown_epic("next_id = 6\n" + self.BREAKDOWN)
         tax = self.add_epic("epic-tax")
-        (self.initiative / "tickets.toml").write_text(
+        (tk(self.initiative) / "tickets.toml").write_text(
             '[[epic]]\nid = 1\nslug = "epic-pricing"\n\n[[epic]]\nid = 2\nslug = "epic-cart"\n\n[[epic]]\nid = 3\nslug = "epic-tax"\n'
         )
         r = run("move", str(self.initiative), "2.3", str(tax))
@@ -1598,10 +1624,10 @@ covers = ["R2", "R3"]
             [out[k] for k in ("id", "ref", "file", "plan", "next_id")], [1, "3.1", None, None, {"epic-cart": 6}]
         )
         self.assertEqual(
-            (tax / "tickets.toml").read_text(encoding="utf-8"),
+            (tk(tax) / "tickets.toml").read_text(encoding="utf-8"),
             '[[entry]]\nid = 1\ntype = "spike"\ntitle = "Tax engine?"\nafter = ["2.1"]\ncovers = ["R4"]\nhitl = true\n',
         )
-        cart = (self.epic / "tickets.toml").read_text(encoding="utf-8")
+        cart = (tk(self.epic) / "tickets.toml").read_text(encoding="utf-8")
         self.assertTrue(cart.startswith("next_id = 6\n\n[[entry]]"), cart)
         self.assertNotIn("Tax engine", cart)
         self.assertIn('after = [2, "3.1"]\n', cart)
@@ -1616,6 +1642,129 @@ covers = ["R2", "R3"]
                 {"epic": "epic-tax", "after": "epic-cart", "ref": "3.1", "names": "2.1"},
             ],
         )
+
+    def test_a_tickets_folder_given_as_the_dir_is_read_as_its_container(self):
+        self.pricing()
+        self.breakdown_epic()
+        for folder in (self.epic, self.initiative):
+            expected = json.loads(run("status", str(folder)).stdout)
+            self.assertEqual(json.loads(run("status", str(folder / "tickets")).stdout), expected)
+        self.assertEqual(json.loads(run("next", str(self.epic / "tickets")).stdout)["folder"], "epic-cart")
+        self.assertEqual(json.loads(run("find", str(self.epic / "tickets"), "2").stdout)["title"], "UI shell")
+
+    def test_the_earlier_layout_is_refused_and_bmad_migrate_named(self):
+        old = self.root / "out" / "initiative-old"
+        (old / "epic-a").mkdir(parents=True)
+        (old / "initiative-old.md").write_text("---\ntype: initiative\n---\n# Old\n")
+        (old / "epic-a" / "epic-a.md").write_text("---\ntype: epic\n---\n# A\n")
+        (old / "epic-a" / "story-a.md").write_text(ticket("", 1))
+        self.assertEqual(json.loads(run("status", str(old)).stderr)["error"].split(" uses")[0], "initiative-old")
+        (old / "tickets").mkdir()
+        (old / "epic-a").rename(old / "tickets" / "epic-a")
+        (self.initiative / "tickets.toml").write_text("")
+        for folder, name in ((old, "epic-a"), (self.epic, "initiative-checkout")):
+            r = run("status", str(folder))
+            self.assertEqual(r.returncode, 1, r.stdout)
+            error = json.loads(r.stderr)["error"]
+            self.assertTrue(error.startswith(f"{name} uses the earlier layout"), error)
+            self.assertIn("`bmad migrate` moves it", error)
+
+    def test_epic_rows_carry_refined_false_only_when_the_epic_file_says_so(self):
+        self.pricing()
+        (self.epic / "epic-cart.md").write_text("---\ntype: epic\nrefined: false\n---\n# epic-cart\n")
+        (self.add_epic("epic-tax") / "epic-tax.md").write_text("---\ntype: epic\nrefined: true\n---\n# epic-tax\n")
+        epics = json.loads(run("status", str(self.initiative)).stdout)["epics"]
+        self.assertEqual(
+            [(e["slug"], e["refined"]) for e in epics],
+            [("epic-pricing", True), ("epic-cart", False), ("epic-tax", True)],
+        )
+
+    def test_a_breakdown_holds_one_kind_of_table(self):
+        (tk(self.initiative) / "tickets.toml").write_text(
+            '[[epic]]\nid = 1\nslug = "epic-cart"\n\n[[entry]]\nid = 1\ntype = "story"\ntitle = "Stray"\n'
+        )
+        r = run("status", str(self.initiative))
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertEqual(
+            json.loads(r.stderr)["error"],
+            "initiative-checkout/tickets/tickets.toml: a breakdown holds one kind of table, not [[epic]] and [[entry]]",
+        )
+
+    def test_a_parent_initiative_lists_its_initiatives_with_what_each_waits_on(self):
+        self.seed(s1="done")
+        parent = self.shop()
+        out = json.loads(run("status", str(parent)).stdout)
+        self.assertEqual((out["folder"], out["store"], out["order_conflict"]), ("initiative-shop", "repo", []))
+        checkout, payments, refunds = out["initiatives"]
+        self.assertEqual(
+            checkout,
+            {
+                "id": 1,
+                "slug": "initiative-checkout",
+                "title": "Checkout",
+                "after": [],
+                "folder": "initiative-checkout",
+                "status": "",
+                "counts": {"total": 5, "done": 1, "backlog": 4},
+                "waiting_on": [],
+            },
+        )
+        self.assertEqual(
+            payments,
+            {
+                "id": 2,
+                "slug": "initiative-payments",
+                "title": "Payments",
+                "after": [{"initiative": "initiative-checkout", "needs": "the cart total"}],
+                "folder": None,
+                "waiting_on": ["initiative-checkout"],
+            },
+        )
+        self.assertEqual(refunds["waiting_on"], ["initiative-payments", "initiative-checkout"])
+        nxt = json.loads(run("next", str(parent)).stdout)
+        self.assertEqual((nxt["initiatives"], nxt["ready"]), (out["initiatives"], ["initiative-checkout"]))
+        (self.initiative / "initiative-checkout.md").write_text(
+            "---\ntype: initiative\nstatus: done\n---\n# Checkout\n"
+        )
+        nxt = json.loads(run("next", str(parent)).stdout)
+        self.assertEqual(nxt["ready"], ["initiative-payments"])
+        self.assertEqual([r["waiting_on"] for r in nxt["initiatives"]], [[], [], ["initiative-payments"]])
+
+    def test_a_parent_reports_an_order_conflict_and_refuses_a_cycle(self):
+        text = (
+            '[[initiative]]\nid = 1\nslug = "initiative-checkout"\nafter = [{ initiative = 2 }]\n\n'
+            '[[initiative]]\nid = 2\nslug = "initiative-payments"\n'
+        )
+        parent = self.shop(text)
+        out = json.loads(run("next", str(parent)).stdout)
+        self.assertEqual(out["order_conflict"], [{"initiative": "initiative-checkout", "after": "initiative-payments"}])
+        self.assertEqual(out["ready"], ["initiative-payments"])
+        self.shop(text + "after = [{ initiative = 1 }]\n")
+        for command in ("status", "next"):
+            r = run(command, str(parent))
+            self.assertEqual(r.returncode, 1, r.stdout)
+            self.assertEqual(
+                json.loads(r.stderr)["error"],
+                "cycle through initiative-checkout -> initiative-payments -> initiative-checkout",
+            )
+
+    def test_find_pull_mark_and_move_on_a_parent_ask_for_one_of_its_initiatives(self):
+        self.breakdown_epic()
+        parent = self.shop()
+        for args in (
+            ("find", str(parent), "1"),
+            ("pull", str(parent), "1"),
+            ("mark", str(parent), "1", "done"),
+            ("move", str(parent), "1", str(self.epic)),
+            ("move", str(self.epic), "1", str(parent)),
+        ):
+            r = run(*args)
+            self.assertEqual(r.returncode, 1, args)
+            self.assertEqual(
+                json.loads(r.stderr)["error"],
+                "initiative-shop: a parent initiative holds initiatives; name one of them: "
+                "initiative-checkout, initiative-payments, initiative-refunds",
+            )
 
     def test_move_refuses_and_writes_nothing_when_it_cannot_finish(self):
         pricing = self.pricing()
@@ -1748,7 +1897,13 @@ class ActiveInitiativeTests(TreeCase):
         out = self.ok(run("--project-root", str(self.root), "status", "initiative-checkout", cwd=self.elsewhere()))
         self.assertEqual(out["folder"], "initiative-checkout")
         out = self.ok(
-            run("--project-root", str(self.root), "next", "out/initiative-checkout/epic-cart", cwd=self.elsewhere())
+            run(
+                "--project-root",
+                str(self.root),
+                "next",
+                "out/initiative-checkout/tickets/epic-cart",
+                cwd=self.elsewhere(),
+            )
         )
         self.assertEqual(out["folder"], "epic-cart")
         self.fails(
@@ -1810,14 +1965,25 @@ class ActiveInitiativeTests(TreeCase):
     def test_mark_with_no_folder_blocks_a_ticket_in_the_active_initiative(self):
         pricing = self.pricing()
         r = run("mark", "1.2", "in-progress", "--blocked", "legal", cwd=self.root)
-        self.assertEqual(self.ok(r)["plan"], str(pricing.resolve() / "story-pricing-rules-plan.md"))
-        text = (pricing / "story-pricing-rules-plan.md").read_text(encoding="utf-8")
+        self.assertEqual(self.ok(r)["plan"], str(tk(pricing).resolve() / "story-pricing-rules-plan.md"))
+        text = (tk(pricing) / "story-pricing-rules-plan.md").read_text(encoding="utf-8")
         self.assertIn(f'\nblocked_at: "{date.today().isoformat()}"\nblocked_reason: "legal"\n', text)
         blocked = self.ok(run("next", cwd=self.root))["blocked"]
         self.assertIn(
             ("epic-pricing", 2, "in-progress", "legal"),
             [(e["epic"], e["id"], e["status"], e["blocked_reason"]) for e in blocked],
         )
+
+    def test_a_parent_as_the_active_initiative_shows_its_initiatives_and_find_wants_one(self):
+        self.shop()
+        self.configure("initiative-shop")
+        out = self.ok(run("status", cwd=self.root))
+        self.assertEqual(
+            [(r["slug"], r["folder"]) for r in out["initiatives"]][0], ("initiative-checkout", "initiative-checkout")
+        )
+        self.assertEqual(self.ok(run("next", cwd=self.root))["ready"], ["initiative-checkout"])
+        self.fails(run("find", "1", cwd=self.root), "a parent initiative holds initiatives; name one of them")
+        self.assertEqual(self.ok(run("find", "initiative-checkout", "story-scaffold", cwd=self.root))["id"], 1)
 
     def test_user_layer_overrides_the_base_config(self):
         self.configure("initiative-gone")

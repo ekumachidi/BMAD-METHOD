@@ -220,11 +220,7 @@ The workflow always tries to leave behind a durable artifact describing what hap
 
 ### Primary Plan Artifact
 
-For a ticket from the tree, the plan is the path `tickets.py find` returns:
-`<type>-<slug>-plan.md` in the ticket's epic folder beside `tickets.toml`, or in
-`backlog/` for a backlog ticket. Its `ticket` field holds the entry id, or the
-ticket file's stem for a backlog ticket; that field is how `tickets.py` joins
-the plan to its ticket. For other work, the workflow creates:
+For a ticket from the tree, the plan is the path `tickets.py find` returns: `<type>-<slug>-plan.md` in the epic's `tickets/` folder beside `tickets.toml`, or in `backlog/` for a backlog ticket. Its `ticket` field holds the entry id, or the ticket file's stem for a backlog ticket; that field is how `tickets.py` joins the plan to its ticket. For other work, the workflow creates:
 
 `{output_folder}/{active_initiative}/plan-<slug>.md`, or `{output_folder}/plan-<slug>.md` when no initiative is active
 

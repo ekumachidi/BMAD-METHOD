@@ -1,18 +1,18 @@
 # Slicing
 
-An initiative is sliced into epics; planning an epic writes all its stories. When the user has a split in mind, use it and say where the rules below would cut differently.
+An initiative is sliced into epics; an epic is refined, then planning it writes all its stories. When the user has a split in mind, use it and say where the rules below would cut differently.
 
 {{ workflow.tickets_before }}
 
 ## Every container, in order
 
 1. **Envelope.** A document in the folder is an input, not the container; a missing container is written from its input per `spec.md`.
-2. **Requirements.** Unwritten spec sections are written per The Operation in `spec.md`: from an input, or from the parent's lines when the epic only inherits.
+2. **Requirements.** Unwritten spec sections are written per The Operation in `spec.md` from an input; an epic's are written when it is refined.
 3. **Complete the container**: known unknowns in Notes, Outcome and Done when re-read against Requirements and Constraints. When the container was just written, confirm its scope with the user before slicing.
 
 ## Read the code
 
-On an existing codebase, read enough code to see where ownership and deployment split and which stories would touch the same code.
+On an existing codebase, read enough code to see where deployment splits and which stories would touch the same code.
 
 Where the code contradicts a Requirements line, add a `Source conflict:` line (the template's format) to the Notes of the container that owns the line, tell the user, and offer the correction through `spec.md`.
 
@@ -24,6 +24,12 @@ Offer to save a stated team rule as `slice_to_epics` (customize.toml).
 
 Record each slicing choice, declined suggestions included, as a dated `Decision:` line in the container's Notes as it is made.
 
+## Several initiatives
+
+When the work is more than one initiative's worth, propose a parent initiative over several initiatives, not epics inside epics; every initiative keeps initiative, epic and story. The parent's file holds the Requirements and the decisions its children share. Draft its `tickets/tickets.toml` from `{{ workflow.tickets_template }}`: one `[[initiative]]` per child in build order, with an `id`, the child's folder name as `slug`, a `description` of what is true when it is done, the parent ids it `covers`, and an `after` naming what it needs from which child. Run the tree check in `validate.md`, present the draft, and revise it in place until approved.
+
+On approval, create each child as its own `initiative-<slug>/` beside the parent, its file from `{{ workflow.ticket_template }}` with the parent's file in `sources:`; its Requirements, citing parent ids, are written per `spec.md` when it is taken up. A parent holds no epics or entries. Commit. To work a child, record it as `active_initiative` the way On activation in `workflow.md` does; `tickets.py status` on the parent shows every child.
+
 ## Initiative into epics
 
 Revise or drop existing epics per `board.md`; add only when the user confirms the need.
@@ -33,24 +39,34 @@ Draw boundaries by the team's own rule:
 
 {{ workflow.slice_to_epics }}
 {% else %}
-- An epic is one source capability, or a tightly coupled pair, that one owner delivers; two epics need at most a contract between them.
-- A module, service, or bounded context is an epic boundary only when it is also the ownership or deployment boundary.
+- An epic is one source capability, or a tightly coupled pair, delivered and deployed together; two epics need at most a contract between them.
+- A module, service, or bounded context is an epic boundary only when it is also a deployment boundary.
 {% endif %}
 
 Under either rule:
 
-- One epic unless a distinct outcome, owner, or early-usable part splits it.
+- One epic unless a distinct outcome or an early-usable part splits it. Offer to split an epic whose stories would run past the count in Epic into stories.
 - A unit the work only consumes or configures is a touch point: list it in the initiative's Boundaries with its owning epic.
 - The platform baseline (scaffold, CI, deployment) is the opening epic or the first stories of the first epic.
 - Every epic delivers to production; its Done when includes integrated verification.
 
-Draft the set as the initiative's `tickets.toml` from `{{ workflow.tickets_template }}`: one `[[epic]]` per epic in build order, each with an `id`, a `description` of what is true when it is done, the parent ids it `covers`, and an `after` naming what it needs from which epic; `after` on an epic file only for a whole-epic gate. Run the tree check in `validate.md`, then present the draft in build order, naming the rule that cut it, with each epic's boundary, the tracer path, touch points with owners, and decisions several epics share.
+Draft the set as the initiative's `tickets/tickets.toml` from `{{ workflow.tickets_template }}`: one `[[epic]]` per epic in build order, each with an `id`, a `description` of what is true when it is done, the parent ids it `covers`, and an `after` naming what it needs from which epic; `after` on an epic file only for a whole-epic gate. Run the tree check in `validate.md`, then present the draft in build order, naming the rule that cut it, with each epic's boundary, the tracer path, touch points with owners, and decisions several epics share.
 
-On approval, create each new epic's folder and envelope from `{{ workflow.ticket_template }}`, with Requirements per `spec.md`, and commit (on a tracker, publish) per `board.md`.
+On approval, create each new epic's folder in the initiative's `tickets/` folder and its file from `{{ workflow.ticket_template }}`, written thin: Description, Outcome, Boundaries, Done when as far as known, References to the parent, `covers` and `after`, with `refined: false` and no Requirements. Commit (on a tracker, publish) per `board.md`.
 
 Offer `bmad-architecture` to settle shared decisions in the architecture spine, cited in adopting epics' References. If declined, each becomes a `story` entry (`hitl = true`) in the opening epic's `tickets.toml`, written now, and each adopting epic gets `after = [{ epic = <opening>, needs = <the decision> }]`; planning keeps those entries first, ids kept.
 
-Stop here unless the user wants to plan an epic's stories now.
+Stop here unless the user wants to refine an epic now.
+
+## Refining an epic
+
+An epic with `refined: false` has its scope agreed, not its detail; refine it on request or before planning its stories. Read the epic file and the initiative Requirements lines it covers. In one message, scaled to the initiative (on a small one, a single question: does the epic need anything before stories?):
+
+- What the epic, the initiative and their companions already settle for its stories.
+- Each thing its stories would have to agree on that is still open, with your pick: settle it with the user now, plan a spike first when only code can answer it, or leave it to the stories.
+- A reminder that the user can flesh the epic out further: more intent, as their own notes or a `bmad-prd` run on the epic; more design, as `bmad-ux` or `bmad-architecture` on the epic; or research with `bmad-deep-recon`.
+
+A UX, architecture or PRD run the user chooses lands in the epic's folder, and SPEC adopts what it produces as a companion. Fill the epic in from the initiative's lines alone only when the user says to, or when it needs nothing more. Then write its Requirements per `spec.md`, re-read Outcome and Done when, set `refined: true`, and commit (on a tracker, publish) per `board.md`.
 
 ## Epic into stories
 
@@ -72,7 +88,7 @@ What opens and closes the breakdown:
 - {{ workflow.tickets_refactor_sweep }}
 - Offer a closing end-to-end suite after the sweep if the source has a test plan or the user asks.
 
-Draft the breakdown as the epic's `tickets.toml` from `{{ workflow.tickets_template }}`, run the set check in `validate.md`, and revise it in place with the user until approved. Beyond the template:
+Draft the breakdown as the epic's `tickets/tickets.toml` from `{{ workflow.tickets_template }}`, run the set check in `validate.md`, and revise it in place with the user until approved. Beyond the template:
 
 - `after`: if this epic has an `after` in the initiative's breakdown, add the provider to each entry that needs it: `<epic id>.<entry id>` once that entry exists, else `epic-<slug>`.
 - `refine = true` only on request.

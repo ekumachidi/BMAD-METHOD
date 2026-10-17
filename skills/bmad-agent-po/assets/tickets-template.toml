@@ -1,10 +1,10 @@
-# A container's agreed children; tickets.py ignores unknown keys.
+# A container's agreed children, in its tickets/ folder; tickets.py ignores unknown keys.
 # Table order is build order. `id` is permanent, never reused.
-# An initiative with no epics uses [[entry]] tables.
+# One kind of table per file: an initiative with no epics uses [[entry]] tables, a parent initiative [[initiative]] tables.
 # No status here: the plan carries `status`; `tickets.py mirror` writes `tracker_status` to the leaf.
 # next_id = 7 # written by `tickets.py move`; the folder's counter never goes below it
 
-# ---- In an epic folder: one table per planned story, spike, or bug ----
+# ---- In an epic's tickets/ folder: one table per planned story, spike, or bug ----
 
 [[entry]]
 id = 1 # leaf file's `id:`
@@ -35,11 +35,11 @@ after = [1, "1.3"] # sibling id; "<epic id>.<entry id>"; "epic-<slug>"
 hitl = false
 risk = "medium"
 
-# ---- In an initiative folder: one table per epic ----
+# ---- In an initiative's tickets/ folder: one table per epic ----
 
 [[epic]]
 id = 1
-slug = "epic-pricing-rules" # epic folder name
+slug = "epic-pricing-rules" # the epic's folder, inside this tickets/ folder
 title = "Pricing rules"
 description = "Every price a shopper sees comes from one pricing function, deployed." # what is true when it is done; seeds the envelope's Outcome
 covers = ["R1", "R2"]
@@ -51,3 +51,20 @@ title = "Shoppers manage their cart"
 description = "A shopper adds, changes and removes items on the deployed site and the total follows."
 covers = ["R3", "R4", "R5"]
 after = [{ epic = 1, needs = "the one-function pricing contract" }] # entries carry their own `after`
+
+# ---- In a parent initiative's tickets/ folder: one table per child initiative ----
+
+[[initiative]]
+id = 1
+slug = "initiative-storefront" # the child's folder, beside the parent's
+title = "Shoppers buy online"
+description = "A shopper finds, prices and pays for an order on the live site."
+covers = ["R1", "R2"]
+
+[[initiative]]
+id = 2
+slug = "initiative-fulfillment"
+title = "Orders ship themselves"
+description = "A paid order is picked, packed and tracked without manual steps."
+covers = ["R3"]
+after = [{ initiative = 1, needs = "the order-paid event" }]
