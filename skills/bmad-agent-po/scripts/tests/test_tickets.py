@@ -1476,6 +1476,168 @@ covers = ["R2", "R3"]
         self.assertNotIn("problems", out)
         self.assertEqual([t["id"] for t in out["ready_to_start"]], [2, 3])
 
+    def test_status_lists_a_declared_epic_before_its_folder_exists(self):
+        (self.initiative / "tickets.toml").write_text(
+            '[[epic]]\nid = 1\nslug = "epic-base"\n\n'
+            '[[epic]]\nid = 2\nslug = "epic-cart"\nafter = [{ epic = 1, needs = "the scaffold" }]\n'
+        )
+        r = run("status", str(self.initiative))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        base, cart = json.loads(r.stdout)["epics"]
+        self.assertEqual((base["slug"], base["id"], base["folder"], base["after"]), ("epic-base", 1, None, []))
+        self.assertFalse({"status", "gated_by", "blocks", "next_id"} & base.keys())
+        self.assertEqual((cart["folder"], cart["status"], cart["gated_by"], cart["next_id"]), ("epic-cart", "", [], 1))
+        self.assertEqual(cart["after"], [{"epic": "epic-base", "needs": "the scaffold"}])
+        self.add_epic("epic-extra")
+        rows = json.loads(run("status", str(self.initiative)).stdout)["epics"]
+        self.assertEqual(
+            [(e["slug"], e["folder"]) for e in rows],
+            [("epic-base", None), ("epic-cart", "epic-cart"), ("epic-extra", "epic-extra")],
+        )
+
+    def test_an_after_naming_a_listed_epic_with_no_folder_says_so(self):
+        (self.initiative / "tickets.toml").write_text(
+            '[[epic]]\nid = 1\nslug = "epic-base"\n\n[[epic]]\nid = 2\nslug = "epic-cart"\n'
+        )
+        self.breakdown_epic('[[entry]]\nid = 1\ntype = "story"\ntitle = "Scaffold"\nafter = ["epic-base"]\n')
+        r = run("status", str(self.initiative))
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("has no folder yet; create epic-base/epic-base.md", json.loads(r.stderr)["error"])
+        self.add_epic("epic-base")
+        self.assertEqual(run("status", str(self.initiative)).returncode, 0)
+
+    def test_mirror_lists_a_published_container_apart_from_unmatched_and_writes_nothing_to_it(self):
+        self.write_store("jira")
+        self.breakdown_epic()
+        epic_file = self.epic / "epic-cart.md"
+        epic_file.write_text('---\ntype: epic\ntracker_id: "CART-E"\nstatus: in-progress\n---\n# epic-cart\n')
+        (self.initiative / "initiative-checkout.md").write_text(
+            '---\ntype: initiative\ntracker_id: "INIT-1"\n---\n# Checkout\n'
+        )
+        before = epic_file.read_text(encoding="utf-8")
+        r = self.mirror(
+            [
+                {"ref": "epic-cart", "tracker_status": "done"},
+                {"tracker_id": "INIT-1", "tracker_status": "in-progress"},
+                {"ref": 1, "tracker_status": "done"},
+                {"tracker_id": "NOPE-1", "tracker_status": "done"},
+            ]
+        )
+        self.assertEqual(r.returncode, 0, r.stderr)
+        out = json.loads(r.stdout)
+        self.assertEqual(
+            out["containers"],
+            [
+                {"ref": "epic-cart", "folder": "epic-cart", "status": "in-progress", "tracker_status": "done"},
+                {"ref": "INIT-1", "folder": "initiative-checkout", "status": "", "tracker_status": "in-progress"},
+            ],
+        )
+        self.assertEqual([m["ref"] for m in out["mirrored"]], ["1"])
+        self.assertEqual([u["ref"] for u in out["unmatched"]], ["NOPE-1"])
+        self.assertEqual(epic_file.read_text(encoding="utf-8"), before)
+        r = self.mirror([{"tracker_id": "cart-e", "tracker_status": "done"}])
+        self.assertEqual([c["folder"] for c in json.loads(r.stdout)["containers"]], ["epic-cart"])
+
+    def test_move_takes_the_entry_its_file_and_plan_along_and_rewrites_every_after(self):
+        pricing = self.pricing()
+        self.breakdown_epic()
+        (pricing / "tickets.toml").write_text(
+            '[[entry]]\nid = 1\ntype = "story"\ntitle = "Pricing contract"\n\n'
+            '[[entry]]\nid = 2\ntype = "story"\ntitle = "Pricing rules"\nafter = [1, "2.2"] # waits on the shell\n'
+        )
+        self.assertEqual(run("pull", str(self.epic), "2").returncode, 0)
+        self.mark(str(self.epic), "2", "in-progress")
+        r = run("move", str(self.epic), "2", str(pricing))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        out = json.loads(r.stdout)
+        self.assertEqual(
+            [out[k] for k in ("from", "to", "old_id", "id", "ref", "file", "plan", "next_id")],
+            ["epic-cart", "epic-pricing", 2, 3, "1.3", "story-ui-shell.md", "story-ui-shell-plan.md", {"epic-cart": 5}],
+        )
+        self.assertEqual(
+            {r["where"]: r["after"] for r in out["rewritten"]},
+            {
+                "epic-cart/tickets.toml entry 4": ["1.3", 3],
+                "epic-pricing/tickets.toml entry 2": [1, 3],
+                "epic-pricing/tickets.toml entry 3": ["2.1"],
+                "epic-pricing/story-ui-shell.md": ["2.1"],
+            },
+        )
+        cart = (self.epic / "tickets.toml").read_text(encoding="utf-8")
+        self.assertTrue(cart.startswith("next_id = 5\n\n[[entry]]\nid = 1\n"), cart)
+        self.assertNotIn("UI shell", cart)
+        self.assertIn('after = ["1.3", 3]\n', cart)
+        text = (pricing / "tickets.toml").read_text(encoding="utf-8")
+        self.assertIn("after = [1, 3] # waits on the shell\n", text)
+        self.assertTrue(
+            text.endswith('[[entry]]\nid = 3\ntype = "story"\ntitle = "UI shell"\nafter = ["2.1"]\ncovers = ["R1"]\n'),
+            text,
+        )
+        self.assertEqual(sorted(p.name for p in self.epic.glob("story-*")), [])
+        head = (pricing / "story-ui-shell.md").read_text(encoding="utf-8").split("---")[1]
+        for line in ("id: 3", "parent: epic-pricing", 'after: ["2.1"]'):
+            self.assertIn(f"\n{line}\n", head)
+        self.assertIn("\nticket: 3\n", (pricing / "story-ui-shell-plan.md").read_text(encoding="utf-8"))
+        status = json.loads(run("status", str(self.initiative)).stdout)
+        self.assertNotIn("problems", status)
+        self.assertEqual({e["slug"]: e["next_id"] for e in status["epics"]}, {"epic-pricing": 4, "epic-cart": 5})
+        hit = json.loads(run("find", str(self.initiative), "1.3").stdout)
+        self.assertEqual((hit["title"], hit["state"], hit["after"]), ("UI shell", "in-progress", ["2.1"]))
+
+    def test_move_creates_the_destinations_breakdown_and_leaves_what_status_then_reports(self):
+        self.pricing()
+        self.breakdown_epic("next_id = 6\n" + self.BREAKDOWN)
+        tax = self.add_epic("epic-tax")
+        (self.initiative / "tickets.toml").write_text(
+            '[[epic]]\nid = 1\nslug = "epic-pricing"\n\n[[epic]]\nid = 2\nslug = "epic-cart"\n\n[[epic]]\nid = 3\nslug = "epic-tax"\n'
+        )
+        r = run("move", str(self.initiative), "2.3", str(tax))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        out = json.loads(r.stdout)
+        self.assertEqual(
+            [out[k] for k in ("id", "ref", "file", "plan", "next_id")], [1, "3.1", None, None, {"epic-cart": 6}]
+        )
+        self.assertEqual(
+            (tax / "tickets.toml").read_text(encoding="utf-8"),
+            '[[entry]]\nid = 1\ntype = "spike"\ntitle = "Tax engine?"\nafter = ["2.1"]\ncovers = ["R4"]\nhitl = true\n',
+        )
+        cart = (self.epic / "tickets.toml").read_text(encoding="utf-8")
+        self.assertTrue(cart.startswith("next_id = 6\n\n[[entry]]"), cart)
+        self.assertNotIn("Tax engine", cart)
+        self.assertIn('after = [2, "3.1"]\n', cart)
+        status = json.loads(run("status", str(self.initiative)).stdout)
+        self.assertEqual(
+            {e["slug"]: e["next_id"] for e in status["epics"]}, {"epic-pricing": 3, "epic-cart": 6, "epic-tax": 2}
+        )
+        self.assertEqual(
+            status["undeclared_after"],
+            [
+                {"epic": "epic-cart", "after": "epic-tax", "ref": "2.4", "names": "3.1"},
+                {"epic": "epic-tax", "after": "epic-cart", "ref": "3.1", "names": "2.1"},
+            ],
+        )
+
+    def test_move_refuses_and_writes_nothing_when_it_cannot_finish(self):
+        pricing = self.pricing()
+        self.breakdown_epic()
+        tax = self.add_epic("epic-tax")
+        self.add("story-stray.md", ticket("", 9))
+        self.assertEqual(run("pull", str(self.epic), "3").returncode, 0)
+        self.add("spike-tax-engine.md", "# taken\n", pricing)
+        before = {p: p.read_bytes() for p in self.initiative.rglob("*") if p.is_file()}
+        for args, message in (
+            ((str(self.epic), "2", str(self.epic)), "already in epic-cart"),
+            ((str(self.epic), "2", str(self.initiative)), "holds epics"),
+            ((str(self.epic), "9", str(pricing)), "has no entry"),
+            ((str(self.epic), "2", str(tax)), "has no id in the initiative's tickets.toml"),
+            ((str(self.epic), "3", str(pricing)), "spike-tax-engine.md exists already"),
+            ((str(self.epic), "2", "epic-nowhere"), "not a folder"),
+        ):
+            r = run("move", *args)
+            self.assertEqual(r.returncode, 1, r.stdout)
+            self.assertIn(message, json.loads(r.stderr)["error"])
+        self.assertEqual({p: p.read_bytes() for p in self.initiative.rglob("*") if p.is_file()}, before)
+
 
 class ActiveInitiativeTests(TreeCase):
     """With no folder, next, status, and find run on `{tickets.root}/{active_initiative}`."""
@@ -1559,6 +1721,14 @@ class ActiveInitiativeTests(TreeCase):
         self.assertEqual((out["folder"], out["counts"]["total"]), ("epic-cart", 5))
         self.configure(None)
         self.fails(run("--project-root", str(self.root), "status", "epic-cart", cwd=self.elsewhere()), "not a folder")
+
+    def test_a_folder_not_found_names_where_it_looked(self):
+        r = run("--project-root", str(self.root), "status", "epic-nope", cwd=self.elsewhere())
+        self.assertEqual(r.returncode, 1)
+        error = json.loads(r.stderr)["error"]
+        self.assertTrue(error.startswith("not a folder: epic-nope (looked under "), error)
+        for base in (self.root / "out", self.initiative, self.root):
+            self.assertIn(str(base.resolve()), error)
 
     def test_the_backlog_as_active_initiative_is_reported_once(self):
         backlog = self.add_backlog()

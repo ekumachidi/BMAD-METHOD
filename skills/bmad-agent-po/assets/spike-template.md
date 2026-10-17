@@ -38,7 +38,7 @@ risk: [low|medium|high]
 ## References
 
 - parent — [path or url]
-- [source — path, section]
+- [type — path, section]
 
 ## Notes
 

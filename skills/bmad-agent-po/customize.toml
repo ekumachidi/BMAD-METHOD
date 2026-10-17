@@ -37,37 +37,37 @@ principles = [
 [[agent.menu]]
 code = "SPEC"
 description = "requirements from an input (PRD, brief, transcript, idea, notes) into a ticket; updated or validated"
-prompt = "Read `{skill-root}/references/spec.md` fully and follow it."
+prompt = "`{skill-root}/references/spec.md`"
 
 [[agent.menu]]
 code = "TICKETS"
-description = "initiative started, authored, or split into epics; epic incepted into stories or re-sliced"
-prompt = "Read `{skill-root}/references/slice.md` fully and follow it."
+description = "initiative started, authored, or split into epics; an epic's stories planned or re-sliced"
+prompt = "`{skill-root}/references/slice.md`"
 
 [[agent.menu]]
 code = "REFINE"
 description = "one ticket written, reviewed, or refined"
-prompt = "Read `{skill-root}/references/ticket.md` fully and follow it."
+prompt = "`{skill-root}/references/ticket.md`"
 
 [[agent.menu]]
 code = "BOARD"
-description = "tickets published, started, moved, assigned, blocked, closed, dropped; a tree cancelled; status of a ticket or tree; what is ready or next"
-prompt = "Read `{skill-root}/references/board.md` fully and follow it."
+description = "tickets published, started, moved, assigned, blocked, closed, dropped; a tree cancelled"
+prompt = "`{skill-root}/references/board.md`"
 
 [[agent.menu]]
 code = "VALIDATE"
 description = "a ticket, set, or tree validated"
-prompt = "Read `{skill-root}/references/validate.md` fully and follow it."
+prompt = "`{skill-root}/references/validate.md`"
 
 [[agent.menu]]
 code = "REPLAN"
 description = "a mid-flight change: impact, stale work, re-slice or drop"
-prompt = "Read `{skill-root}/references/replan.md` fully and follow it."
+prompt = "`{skill-root}/references/replan.md`"
 
 [[agent.menu]]
 code = "STORE"
 description = "tracker connected; store reconfigured or switched"
-prompt = "Read `{skill-root}/references/store-setup.md` fully and follow it."
+prompt = "`{skill-root}/references/store-setup.md`"
 
 [workflow]
 
@@ -79,7 +79,7 @@ spec_before = ""
 spec_after = ""
 # Before slicing starts. Top of references/slice.md.
 tickets_before = ""
-# After an approved slice, inception, or re-slice. End of references/slice.md.
+# After an approved slice, story plan, or re-slice. End of references/slice.md.
 tickets_after = ""
 # Before ticket work. Top of references/ticket.md.
 refine_before = ""
@@ -108,9 +108,9 @@ ticket_template = "{skill-root}/assets/ticket-template.md"
 bug_template = "{skill-root}/assets/bug-template.md"
 # Spike template: Approach, `Verify:` lines instead of Given/When/Then (deliberate). Lands in references/ticket.md.
 spike_template = "{skill-root}/assets/spike-template.md"
-# `tickets.toml` entry and epic table keys; `tickets.py` ignores unknown ones. Lands in references/ticket.md and slice.md.
+# `tickets.toml` entry and epic table keys; `tickets.py` ignores unknown ones. Lands in references/slice.md.
 tickets_template = "{skill-root}/assets/tickets-template.toml"
-# Tracker publishing: at_inception (whole breakdown) or on_start (each ticket); user can override; other values halt the render; on the repo store, committing tickets.toml publishes. Lands in references/board.md, Publish.
+# Tracker publishing: at_inception (whole breakdown) or on_start (each ticket); user can override; other values halt the render; on the repo store, approval commits and this key does not apply. Lands in references/board.md, Publish.
 publication = "at_inception"
 # Epic boundary rule (team text or a readable pointer) replacing the one in references/slice.md. Lands in references/slice.md, Initiative into epics.
 slice_to_epics = ""
@@ -129,15 +129,15 @@ Before presenting any create or update, run two passes.
 
 **Pass 2 — Preservation.** Every load-bearing source claim lands in the ticket or a companion. Log each wrapper-only drop to the memlog as an event.
 
-Record each pass's verdict to `.memlog.md` (`append --type event`); review it with the user.\
+Record each pass's verdict to `.memlog.md` (`append --type event`); mention a pass to the user only when it changed something they approved.\
 """
 
-# Epic's first entry; the Set check asserts the shipped rule. Lands in references/slice.md, Epic into stories.
+# Epic's first entry; the Set check asserts it as rendered and slicing records it as a `Decision:` line in the epic's Notes. Lands in references/slice.md, Epic into stories.
 tickets_tracer_bullet = """
 The first entry is the tracer bullet: the thinnest path through every layer the epic touches. Its setup, including any starter the user runs, is a hitl step. It and any demoable entry say what someone sees running when done. Next is the story the user is least sure of.\
 """
 
-# Epic's closing story; the Set check asserts the shipped rule. Lands in references/slice.md, Epic into stories.
+# Epic's closing story; the Set check asserts it as rendered. Lands in references/slice.md, Epic into stories.
 tickets_refactor_sweep = """
 An epic of more than three entries closes with a story "Refactor sweep" that waits on every other entry except a closing end-to-end suite. Its scope, set at its start from plans and review findings the epic deferred, is cleanup only; scope pushed out of another story is a new story. Propose it by default; if declined, record a `Decision:` line in the epic's Notes.\
 """

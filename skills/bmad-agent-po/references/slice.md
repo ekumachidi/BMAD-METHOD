@@ -1,28 +1,26 @@
 # Slicing
 
-An initiative is sliced into epics; inception plans the whole selected epic. The user's own split comes first.
-
-Every story sits under an epic unless the user asks for stories directly under the initiative.
+An initiative is sliced into epics; planning an epic writes all its stories. When the user has a split in mind, use it and say where the rules below would cut differently.
 
 {{ workflow.tickets_before }}
 
 ## Every container, in order
 
-1. **Envelope.** A document in the folder is an input, not the container. Offer to create a missing one from `{{ workflow.ticket_template }}`; an epic records its parent and owned parent requirement ids in `covers`. Done when is three to six checks at the altitude of the source's ids.
+1. **Envelope.** A document in the folder is an input, not the container; a missing container is written from its input per `spec.md`.
 2. **Requirements.** Unwritten spec sections are written per The Operation in `spec.md`: from an input, or from the parent's lines when the epic only inherits.
-3. **Complete the container**: known unknowns in Notes, Outcome and Done when re-read against Requirements and Constraints. Confirm its scope with the user before slicing.
+3. **Complete the container**: known unknowns in Notes, Outcome and Done when re-read against Requirements and Constraints. When the container was just written, confirm its scope with the user before slicing.
 
-## Read the spec, then the code
+## Read the code
 
-Read the ticket in full; it is the spec, and its sources are already in it. Open a companion only where a boundary depends on it. On an existing codebase, read enough code to see where ownership and deployment split and which stories would touch the same code. Share your conclusions; ask what is wrong or missing.
+On an existing codebase, read enough code to see where ownership and deployment split and which stories would touch the same code.
 
-Where the code contradicts a Requirements line, add `Source conflict: <id> — <the line> vs <what the code shows>` to the Notes of the container that owns the line, tell the user, and offer the correction through `spec.md`.
+Where the code contradicts a Requirements line, add a `Source conflict:` line (the template's format) to the Notes of the container that owns the line, tell the user, and offer the correction through `spec.md`.
 
-## Ask the questions that decide the split
+## One message, then revise
 
-Ask only open questions that change the split (first demo, least certain part, the user's split, the team's epic rule), with your recommendations.
+Before the draft is revised, one message holds what the spec and code show, each question that changes the split (first demo, least certain part, the team's epic rule) with your pick, and the draft in build order. Revise it in place until approved.
 
-When the user states how their team cuts epics, offer to save it as `slice_to_epics` under `[workflow]` in `{project-root}/_bmad/custom/bmad-agent-po.toml`.
+Offer to save a stated team rule as `slice_to_epics` (customize.toml).
 
 Record each slicing choice, declined suggestions included, as a dated `Decision:` line in the container's Notes as it is made.
 
@@ -46,17 +44,17 @@ Under either rule:
 - The platform baseline (scaffold, CI, deployment) is the opening epic or the first stories of the first epic.
 - Every epic delivers to production; its Done when includes integrated verification.
 
-Draft the set as the initiative's `tickets.toml` from `{{ workflow.tickets_template }}`: one `[[epic]]` per epic in build order, each with an `id`, a `description` of what is true when it is done, the parent ids it `covers`, and an `after` naming what it needs from which epic; `after` on an epic file only for a whole-epic gate. Run the tree check in `validate.md`, then present the draft in build order, naming the rule that cut it, with each epic's boundary, the tracer path, touch points with owners, and decisions several epics share. Revise it in place.
+Draft the set as the initiative's `tickets.toml` from `{{ workflow.tickets_template }}`: one `[[epic]]` per epic in build order, each with an `id`, a `description` of what is true when it is done, the parent ids it `covers`, and an `after` naming what it needs from which epic; `after` on an epic file only for a whole-epic gate. Run the tree check in `validate.md`, then present the draft in build order, naming the rule that cut it, with each epic's boundary, the tracer path, touch points with owners, and decisions several epics share.
 
-On confirmation, create each new epic's folder and envelope, with Requirements per `spec.md`, and commit per `board.md`.
+On approval, create each new epic's folder and envelope from `{{ workflow.ticket_template }}`, with Requirements per `spec.md`, and commit (on a tracker, publish) per `board.md`.
 
-Offer `bmad-architecture` to settle shared decisions in the architecture spine, cited in adopting epics' References. If declined, each becomes a `story` entry (`hitl = true`) in the opening epic's `tickets.toml`, written now, and each adopting epic gets `after = [{ epic = <opening>, needs = <the decision> }]`; inception keeps those entries first, ids kept.
+Offer `bmad-architecture` to settle shared decisions in the architecture spine, cited in adopting epics' References. If declined, each becomes a `story` entry (`hitl = true`) in the opening epic's `tickets.toml`, written now, and each adopting epic gets `after = [{ epic = <opening>, needs = <the decision> }]`; planning keeps those entries first, ids kept.
 
-Stop here unless the user wants to incept an epic now.
+Stop here unless the user wants to plan an epic's stories now.
 
 ## Epic into stories
 
-Read the epic file in full, then its breakdown, child tickets, and results. Each blocking unknown is answered now, recorded as the `unknown` of affected entries, or spiked if the user asks.
+After the epic file, read its breakdown, child tickets, and results. Each blocking unknown is settled now per `board.md`, recorded as the `unknown` of the entries it blocks, or spiked if the user asks.
 
 What makes a good story:
 
@@ -74,27 +72,25 @@ What opens and closes the breakdown:
 - {{ workflow.tickets_refactor_sweep }}
 - Offer a closing end-to-end suite after the sweep if the source has a test plan or the user asks.
 
-Draft the breakdown as the epic's `tickets.toml` from `{{ workflow.tickets_template }}`, run the set check in `validate.md`, and revise it in place with the user until approved. Entries keep their `id` for good and sit in build order. Beyond the template:
+Draft the breakdown as the epic's `tickets.toml` from `{{ workflow.tickets_template }}`, run the set check in `validate.md`, and revise it in place with the user until approved. Beyond the template:
 
-- `description`: what the entry delivers toward its `covers` ids; `verify`: how it is checked; one sentence each.
-- `after`: real prerequisites only. If this epic has an `after` in the initiative's breakdown, add the provider to each entry that needs it: `<epic id>.<entry id>` once that entry exists, else `epic-<slug>`.
-- `refine = true` only where the user asks for full criteria; bugs get them anyway.
-- `references`: only what the entry needs beyond the epic's References. `notes`: only the user's own words.
-- For an unattended epic, ask for `plan_checkpoint` and `done_checkpoint` per entry, proposing `plan_checkpoint` on risky ones.
+- `after`: if this epic has an `after` in the initiative's breakdown, add the provider to each entry that needs it: `<epic id>.<entry id>` once that entry exists, else `epic-<slug>`.
+- `refine = true` only on request.
+- When the user says the epic will build unattended, ask for `plan_checkpoint` and `done_checkpoint` per entry, proposing `plan_checkpoint` on risky ones.
 - Each touch point this epic owns is an entry or part of one.
 
-With the draft, name the tracer bullet, parallel work, and deferred scope. At approval, offer once to edit any entry's description, notes, or references.
+With the draft, name the tracer bullet, parallel work, and deferred scope; record the tracer bullet as a dated `Decision:` line in the epic's Notes.
 
-A split at inception adds an epic (folder, envelope, `[[epic]]` with its `after`) and moves its covers ids and entries; no file is renamed.
+A split while planning adds an epic (folder, envelope, `[[epic]]` with its `after`) and moves its covers ids and entries; no file is renamed.
 
 Write no leaf file until its entry is pulled.
 
-Run `uv run {skill-root}/scripts/tickets.py --project-root {project-root} status <initiative folder>`. Repoint each ticket in this epic's `blocks` (under `epics`) to the entry it waits for. Clear any `unpinned_after`, `undeclared_after`, or `order_conflict`, then publish, both per `board.md`.
+Run `tickets.py status <initiative folder>`. Repoint each ticket in this epic's `blocks` (under `epics`) to the entry it waits for. Clear any `unpinned_after`, `undeclared_after`, or `order_conflict`, then commit (on a tracker, publish), both per `board.md`.
 
 Tell the user the entries are ready to build; for `bmad-build-auto`, a loop, or a factory, recommend reviewing each entry now (`ticket.md`).
 
 ## Re-slicing
 
-When completed work changes the picture, revise unstarted entries and tickets in place with the user, keeping each `id`; run the set check before approval, publish through the store, and record the reason in the epic's Notes.
+When completed work changes the picture, revise unstarted entries and tickets in place with the user, keeping each `id`; run the set check before approval, commit (on a tracker, publish) per `board.md`, and record the reason in the epic's Notes.
 
 {{ workflow.tickets_after }}

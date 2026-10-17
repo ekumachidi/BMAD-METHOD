@@ -2,6 +2,7 @@
 # Table order is build order. `id` is permanent, never reused.
 # An initiative with no epics uses [[entry]] tables.
 # No status here: the plan carries `status`; `tickets.py mirror` writes `tracker_status` to the leaf.
+# next_id = 7 # written by `tickets.py move`; the folder's counter never goes below it
 
 # ---- In an epic folder: one table per planned story, spike, or bug ----
 

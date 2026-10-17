@@ -47,7 +47,7 @@ severity: [P0|P1|P2|P3]   # P0 outage, data loss, security exposure; P1 core fun
 ## References
 
 - parent — [path or url, or none]
-- [source — path, section]
+- [type — path, section]
 - [logs, screenshots, or sample data — location]
 
 ## Notes

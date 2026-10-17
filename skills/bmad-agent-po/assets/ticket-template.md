@@ -1,6 +1,5 @@
 ---
 tracker_id: ""   # with remote (url): set at publish on a tracker, on a story by `tickets.py mirror`; cut on the repo store
-key: ""   # container: tracker project or team for its subtree, if not the store's
 id: [story: its tickets.toml entry id, or the folder's `next_id` if none; cut on a container]
 type: [initiative | epic | story]
 title: "[Container: its outcome. Story: what works when done]"
@@ -9,14 +8,15 @@ covers: [epic: parent ids it owns; story: epic ids it serves; cut on an initiati
 sources: []   # every input SPEC derived Requirements from, paths from {project-root}; each is re-read on update; never the memlog
 companions: []   # files downstream reads beside this ticket, written or adopted by SPEC, paths from {project-root}
 after: []   # container: epics it waits on; epic order is in tickets.toml. Story: prerequisites only: sibling id, "<epic id>.<entry id>", or epic-<slug>
-assignee: ""   # container: gains status (in-progress | done | dropped) at work start. Story: only a tracker's, via `tickets.py mirror`
+assignee: ""   # story: only a tracker's, via `tickets.py mirror`; cut on a container
+# container: add status: in-progress | done | dropped when its first ticket starts
 # a story's status, assignee, blocked_at, blocked_reason live in the plan beside this file, not here; tracker_status from tracker sync
 refined: false   # story only, cut on a container: true once the user approves its criteria; on a pulled story only if its entry has `refine = true`
-hitl: false   # story only, cut on a container
+hitl: false   # true when a person does part of the work; story only, cut on a container
 risk: [low|medium|high; container: a best guess until sliced, then its children's highest]
 ---
 
-<!-- At slicing a container gets all but Requirements and Constraints, which SPEC writes at the split or from an input. A pulled or reviewed story: Description, Verify: line, References, local Notes; refining adds numbered criteria and Boundaries. Done and dropped tickets stay as written. An initiative is the business outcome its epics serve, usually spanning quarters and more than one boundary; for a solo developer or small team a whole product is a fine initiative. -->
+<!-- At create or slicing a container gets all but Requirements and Constraints, which SPEC writes at the split or from an input. A pulled or reviewed story: Description, Verify: line, References, local Notes; refining adds numbered criteria and Boundaries. Done and dropped tickets stay as written. An initiative is the business outcome its epics serve, usually spanning quarters and more than one boundary; for a solo developer or small team a whole product is a fine initiative. -->
 
 # [Title]
 
@@ -30,7 +30,7 @@ risk: [low|medium|high; container: a best guess until sliced, then its children'
 
 ## Requirements
 
-[SPEC writes this from the ticket's `.memlog.md`; Sofia edits it, never slicing. Initiative: `R<n> (<source ids>): <checkable result>`, ids prefixed with the source's References type when ambiguous (`prd FR-2`), its section when it has none. Epic: its owned parent lines, `R<n> (parent R<m>): <the line>`, deepened only as inputs require; split or added lines name a parent id or source section, all lines a source section when `covers` is empty. Story: only `Verify: how it will be checked`. No epic, `refine = true`, or on request: numbered criteria, each naming the epic ids it proves; a criterion states a rule, not an instance, with its failure path.]
+[Container: SPEC writes this from the ticket's `.memlog.md`; slicing never touches it. Initiative: `R<n> (<source ids>): <checkable result>`, ids prefixed with the source's References type when ambiguous (`prd FR-2`), its section when it has none. Epic: its owned parent lines, `R<n> (parent R<m>): <the line>`, deepened only as inputs require; split or added lines name a parent id or source section, all lines a source section when `covers` is empty. Story: only `Verify: how it will be checked`. No epic, `refine = true`, or on request: numbered criteria, each naming the epic ids it proves; a criterion states a rule, not an instance, with its failure path.]
 
 1. **[Behavior name]** (R<m>)
    **Given** [state before]
@@ -44,7 +44,7 @@ risk: [low|medium|high; container: a best guess until sliced, then its children'
 
 ## Done when
 
-[Container: three to six end checks from the source's measures and limits: an initiative's business outcomes, an epic's deliverables at its Requirements' altitude, production delivery among them. Closing every child is not one. Story: cut.]
+[Container: three to six end checks from the source's measures and limits: an initiative's business outcomes, an epic's deliverables at its Requirements' altitude, production delivery among them. Story: cut.]
 
 ## Boundaries
 
@@ -67,7 +67,7 @@ risk: [low|medium|high; container: a best guess until sliced, then its children'
 
 - Assumption: [an unconfirmed choice; once confirmed, a dated Decision]
 - Open question: [container: what the source leaves open, and who waits; story: only its own, answered in its work]
-- Unknown: [the gap and the entries waiting on it]
+- Unknown: [the gap and the entries waiting on it; gates an entry only once copied to its `unknown` key]
 - Parked: [an unplaced requirement id, why, with the user's knowledge]
 - Decision: [the user's choice, dated; a declined suggestion too]
 - Source conflict: [id or section — source vs code or another source]

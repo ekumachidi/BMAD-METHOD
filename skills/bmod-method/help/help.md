@@ -28,7 +28,7 @@ This document should be enough to route the user and say what to do next. Each t
 | `help/artifact-lifetime.md` | Whether to keep PRDs, specs, stories, and build records after the work is done, archiving, closing out an epic, keeping old plans from misleading agents. |
 | `help/monorepo-and-polyrepo.md` | Where to install BMad and keep planning when work spans one repository or several; the workspace layout for a poly repo. |
 | `help/working-in-an-organization.md` | A team or enterprise: an existing PRD, Jira or another tracker, approvals and sign-off, document owners, several engineers in parallel, requirements changing mid-flight. |
-| `help/ticketing-and-epics.md` | How Sofia's ticket tree works (initiatives, epic inception, the breakdown, building from an entry, refining), plan status, review, and retrospective. |
+| `help/ticketing-and-epics.md` | How Sofia's ticket tree works (initiatives, planning an epic's stories, the breakdown, building from an entry, refining), plan status, review, and retrospective. |
 | `help/ticketing-setup.md` | Setting up and driving the ticket tree with Sofia: the store, several repos, trackers, the phrases to say, the hand-off to `bmad-build`. |
 | `help/unattended-builds.md` | `bmad-build-auto`, building stories with no human present, a blocked run and how to retry, what to check after a run. |
 | `help/review-choices.md` | Review depth, skipping review, another review pass, when to stop, slow reviews, customizing review. |
@@ -66,7 +66,7 @@ flowchart TD
     F1 & F2 --> F
     F -->|sliced, epics remain| H
 
-    H{"State of each epic file"} -->|no entries| S3["Talk to Sofia the Product Owner to incept the epic: entries in tickets.toml"]
+    H{"State of each epic file"} -->|no entries| S3["Talk to Sofia the Product Owner to plan the epic's stories: entries in tickets.toml"]
     H -->|an entry needs criteria first: a bug, refine = true| S5["Talk to Sofia the Product Owner to refine it"]
     H -->|entries ready| I["bmad-build per entry<br/>bmad-build-auto when no one is present"]
     H -->|blocked| S6["Talk to Sofia the Product Owner to settle it as a dated Decision, or spike it"]
@@ -112,7 +112,7 @@ One line per skill: what it is for and what it writes. Paths are in the active i
 | `bmad-product-brief` | A 1-2 page brief of a product the user believes in. Lighter than a PRD, sharper than a hand-written intent file. It does not judge the idea. | `brief-<slug>/brief-<slug>.md` |
 | `bmad-prfaq` | Tests whether a concept survives scrutiny: press release, hard FAQs, researched claims, a verdict. | `prfaq-<slug>/prfaq-<slug>.md`, plus `-distillate.md` beside it |
 | **Planning** (`help/planning-skills.md`) | | |
-| `bmad-agent-po` | Sofia the Product Owner. Writes a ticket's Requirements and Constraints from any input, with a stable `R<n>` id per line naming its source, offering express (every gap an Open question line) or guided (walking the sections with the user) when the input is sparse, and updates them when the input changes. Slices initiatives into epics and epics into stories, refines a ticket, runs the board (ready, next, blocked, done), validates, replans a change mid-flight, and connects a tracker. Stories are entries in `tickets.toml`; a file is written only when one is reviewed, refined, or published. A bug is a `backlog/` file or an entry in its epic. | The ticket file, with `.memlog.md` and companions beside it; the ticket tree under `{output_folder}/{active_initiative}/`, plus `{output_folder}/backlog/` |
+| `bmad-agent-po` | Sofia the Product Owner. Writes a ticket's Requirements and Constraints from any input, with a stable `R<n>` id per line naming its source, naming the gaps and walking them with the user, or recording each as an Open question line, when the input is sparse, and updates them when the input changes. Slices initiatives into epics and epics into stories, refines a ticket, runs the board (start, block, close, drop), validates, replans a change mid-flight, and connects a tracker. Stories are entries in `tickets.toml`; a file is written only when one is reviewed, refined, or published. A bug is a `backlog/` file or an entry in its epic. | The ticket file, with `.memlog.md` and companions beside it; the ticket tree under `{output_folder}/{active_initiative}/`, plus `{output_folder}/backlog/` |
 | `bmad-prd` | Coaches detailed requirements out of the user, sized to the stakes. Also updates and validates a PRD. | `prd-<slug>/prd-<slug>.md` |
 | `bmad-ux` | How the product looks and works. May lead, follow, or stand alone. Can produce mocks and wireframes. | `ux-<slug>/` with `DESIGN.md`, `EXPERIENCE.md`, and `ux-<slug>.md` naming them |
 | `bmad-architecture` | Settles only the decisions that keep separately built parts consistent. Coaches a user with no architecture knowledge, recommends a current starter, and covers hosting and deployment. | `architecture-<slug>/architecture-<slug>.md` |

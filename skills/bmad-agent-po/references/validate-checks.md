@@ -5,8 +5,8 @@
 ## Ticket
 
 - References open; no unfilled placeholders; assumptions marked.
-- Nothing contradicts the source, its companions, the architecture, or a recorded decision.
-- Each entry has a description, `unknown` when one is known, and a `verify` a non-builder can run; only bugs, `refine = true` entries, and epic-less tickets need full criteria before execution.
+- Nothing contradicts its epic file, its companions, the architecture, or a recorded decision.
+- Each entry has a description, `unknown` when one is known, and a `verify` a non-builder can run; only bugs, `refine = true` entries, and leaves with no entry need full criteria before execution.
 - A ticket needing full criteria and covering an id in a `Source conflict:` line with no later `Decision:` has `refined: false`.
 
 {% if workflow.checks.ticket %}
@@ -19,9 +19,10 @@ Every entry in the epic's `tickets.toml`, draft or committed, pulled or not.
 
 - Tickets cover every Requirements line not deferred with the user; each `covers` id exists there; tickets sharing an id say which part each delivers.
 - UX, architecture, constraint and integration work is covered without ids; results satisfy Done when; citing an id alone is not coverage.
-- Every `after`, cross-epic too, is a real prerequisite, not restated order; once `tickets.toml` exists, `tickets.py status` on the epic shows no cycle, `drift`, `unpinned_after`, `undeclared_after`, or `order_conflict`; the epic's Notes hold the tracer bullet (the first entry) and sequencing decisions.
+- Every `after`, cross-epic too, is a real prerequisite, not restated order; once `tickets.toml` exists, `tickets.py status` on the epic shows no cycle, `drift`, `unpinned_after`, `undeclared_after`, or `order_conflict`; the epic's Notes hold a dated `Decision:` line naming the tracer bullet, and the sequencing decisions.
 - A builder could write each story's acceptance criteria from the epic, entry, and references; if not, fix the epic, not the one-sentence `description` and `verify`.
-- An epic of over three entries ends with a "Refactor sweep" story after all but a closing end-to-end suite, or a `Decision:` line says why not.
+- Tracer bullet, as rendered in `slice.md`: {{ workflow.tickets_tracer_bullet }}
+- Refactor sweep, as rendered in `slice.md`: {{ workflow.tickets_refactor_sweep }}
 
 {% if workflow.checks.set %}
 {{ workflow.checks.set }}
@@ -36,7 +37,7 @@ The initiative, its `tickets.toml`, draft or committed, and the epic envelopes o
 - Every source id on a Requirements line exists in a `sources:` file, every parent id in the parent's Requirements; every adopted design or architecture document is in `companions:`.
 - Every unit the source touches is an epic, out of scope, or a touch point (consumed or configured only, named in the initiative's Boundaries with its owner).
 - Each decision several epics adopt has one home: an architecture spine section, or an opening-epic entry (first `[[epic]]`) the others wait on.
-- Every written epic envelope has Outcome, Done when (including production delivery), boundaries, upstream coverage, and references; a future epic needs no breakdown, its Requirements being the parent ids it owns; the initiative's `tickets.toml` lists every epic in build order, each `after` naming what it needs, opening with a platform-baseline epic or a `Decision:` line saying why not.
+- Every written epic envelope has Outcome, Done when (including production delivery), boundaries, upstream coverage, and references; a future epic needs no breakdown, its Requirements being the parent ids it owns; the initiative's `tickets.toml` lists every epic in build order, each `after` naming what it needs, and `tickets.py status` on the initiative shows no cycle or `order_conflict`; it opens with a platform-baseline epic, or its first epic's first stories, or a `Decision:` line saying why not.
 - With epics, no leaf sits directly under the initiative.
 
 {% if workflow.checks.tree %}
