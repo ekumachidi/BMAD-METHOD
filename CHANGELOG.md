@@ -12,7 +12,8 @@
 * `planning_artifacts` and `implementation_artifacts` are no longer read or seeded. Run `bmad migrate method` on a v6 project.
 * The ticketing store's `root` key is gone; the ticket tree is `{output_folder}/{active_initiative}`. To move the store, set `core.output_folder` in `_bmad/custom/config.toml`.
 * `active_initiative` is now a core setting: it moved from `[modules.bmm]` to `[core]` in `_bmad/custom/config.user.toml`, since core skills such as brainstorming and research also write into the initiative folder. If you set it on a preview build, move the line.
-* `bmad-preview-ticketing` is now `bmad-ticket`, and the forwarder under the old name is gone. Run `bmad setup`: it updates the skills, moves `_bmad/custom/bmad-preview-ticketing.toml` to `bmad-ticket.toml`, offers to delete the old skill, and offers to install `bmad-ticket`.
+* Sofia the Product Owner (`bmad-agent-po`) replaces `bmad-spec`, `bmad-ticket` and `bmad-correct-course`, and `bmad-preview-ticketing` is gone. Run `bmad setup`: it moves `_bmad/custom/bmad-ticket.toml` to `bmad-agent-po.toml`, moves its `persistent_facts` and `activation_steps_*` from `[workflow]` to `[agent]`, drops the keys Sofia does not read, and offers to delete the old skills. Overrides of `bmad-spec`, `bmad-correct-course` or `bmad-preview-ticketing` do not move; copy what you still need into `bmad-agent-po.toml`.
+* An initiative or epic keeps its `tickets.toml`, child epics, leaf files and plans in a `tickets/` folder inside it. `tickets.py` refuses a tree in the earlier layout; run `bmad migrate method` to move it.
 * Web bundles are removed: the `web-bundles/` folder, its packager and its docs pages. Gemini Gems and ChatGPT Custom GPTs are deprecated and are being replaced by skills on both platforms.
 
 ### ✨ Features
