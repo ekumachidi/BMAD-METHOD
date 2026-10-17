@@ -46,7 +46,6 @@ RENDERED_SKILLS = (
     "bmad-agent-po",
 )
 COMPILE_TOKEN = re.compile(r"\{\{\s*(?:config|workflow|agent)\.|\{\{\s*(?:rendered\(|initiative_folder)|\{%")
-DISPATCH_PREFIX = "read and follow "
 
 sys.path.insert(0, str(SCRIPTS_SRC))
 import render_skill as rs  # noqa: E402
@@ -175,17 +174,23 @@ class RenderSkillTests(unittest.TestCase):
             ],
             cwd=cwd or project,
             text=True,
+            encoding="utf-8",
             capture_output=True,
             check=False,
             timeout=timeout,
         )
 
-    def _entry(self, result: subprocess.CompletedProcess[str]) -> Path:
+    def _entry(self, result: subprocess.CompletedProcess[str], project: Path, skill: Path) -> Path:
+        """The CLI prints the rendered workflow; return the one published workflow.md it printed."""
         self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
-        lines = result.stdout.strip().split("\n")
-        self.assertEqual(len(lines), 1, msg=result.stdout)
-        self.assertTrue(lines[0].startswith(DISPATCH_PREFIX), msg=result.stdout)
-        output = Path(lines[0][len(DISPATCH_PREFIX) :])
+        self.assertFalse(result.stdout.startswith("HALT:"), msg=result.stdout)
+        printed = [
+            path
+            for path in _namespace_dir(project, skill.name).glob("*/workflow.md")
+            if path.read_text(encoding="utf-8") == result.stdout
+        ]
+        self.assertEqual(len(printed), 1, msg=result.stdout)
+        output = printed[0]
         self.assertTrue(output.is_absolute())
         return output
 
@@ -256,7 +261,7 @@ class RenderSkillTests(unittest.TestCase):
                 "workflow.message=command = wins",
             ),
         ):
-            entry = self._entry(self._cli(ws.project, skill, cwd=override_file.parent, args=args))
+            entry = self._entry(self._cli(ws.project, skill, cwd=override_file.parent, args=args), ws.project, skill)
             self.assertEqual(entry.read_text(), "command = wins\n")
             if expected is not None:
                 self.assertEqual(entry, expected)
@@ -823,7 +828,7 @@ class RenderSkillTests(unittest.TestCase):
     def test_cli_from_nested_cwd_dispatches_one_absolute_workflow(self):
         ws = self._workspace()
         skill = self._skill(ws, "bmad-build")
-        workflow = self._entry(self._cli(ws.project, skill, cwd=ws.project / "nested" / "cwd"))
+        workflow = self._entry(self._cli(ws.project, skill, cwd=ws.project / "nested" / "cwd"), ws.project, skill)
         self._assert_rendered(workflow, ws.project, "bmad-build")
         self.assertFalse((ws.bmad / "scripts" / "__pycache__").exists())
         self.assertFalse((skill / "__pycache__").exists())
@@ -903,7 +908,7 @@ class RenderSkillTests(unittest.TestCase):
         skill = self._skill(ws, "bmad-build")
         with ThreadPoolExecutor(max_workers=2) as pool:
             results = list(pool.map(lambda _: self._cli(ws.project, skill), range(2)))
-        entries = [self._entry(result) for result in results]
+        entries = [self._entry(result, ws.project, skill) for result in results]
         self.assertEqual(entries[0], entries[1])
         self.assertTrue((entries[0].parent / "manifest.json").is_file())
 
@@ -914,7 +919,7 @@ class RenderSkillTests(unittest.TestCase):
         result = self._cli(ws.project, skill)
         self.assertNotEqual(result.returncode, 0)
         self.assertTrue(result.stdout.startswith("HALT:"), result.stdout)
-        self.assertNotIn(DISPATCH_PREFIX, result.stdout)
+        self.assertEqual(len(result.stdout.splitlines()), 1, result.stdout)
         self.assertNotIn("Traceback", result.stdout + result.stderr)
 
         (ws.bmad / "custom" / "config.toml").unlink()
@@ -1012,10 +1017,10 @@ class RenderSkillTests(unittest.TestCase):
     def test_installed_renderer_identity_change_publishes_a_new_generation(self):
         ws = self._workspace()
         skill = self._skill(ws, "bmad-build")
-        original = self._entry(self._cli(ws.project, skill))
+        original = self._entry(self._cli(ws.project, skill), ws.project, skill)
         with (ws.bmad / "scripts" / "render_skill.py").open("a", encoding="utf-8") as handle:
             handle.write("\n# renderer identity change\n")
-        changed = self._entry(self._cli(ws.project, skill))
+        changed = self._entry(self._cli(ws.project, skill), ws.project, skill)
         self.assertNotEqual(changed, original)
         self.assertTrue(original.exists())
 
@@ -1074,7 +1079,7 @@ class RenderSkillTests(unittest.TestCase):
         result = self._cli(broken.project, skill)
         self.assertNotEqual(result.returncode, 0)
         self.assertTrue(result.stdout.startswith("HALT:"), result.stdout)
-        self.assertNotIn(DISPATCH_PREFIX, result.stdout)
+        self.assertEqual(len(result.stdout.splitlines()), 1, result.stdout)
         current = _files(original.parent)
         for name, content in original_files.items():
             self.assertEqual(current[name], content, name)
@@ -1097,7 +1102,7 @@ class RenderSkillTests(unittest.TestCase):
         stray.write_bytes(b"explorer")
         result = self._cli(ws.project, skill)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(result.stdout, f"{DISPATCH_PREFIX}{workflow}\n")
+        self.assertEqual(result.stdout, workflow.read_text(encoding="utf-8"))
         self.assertEqual(stray.read_bytes(), b"explorer")
 
         workflow.unlink()
@@ -1130,9 +1135,12 @@ class RenderSkillTests(unittest.TestCase):
                         cwd=ws.project / "nested" / "cwd",
                         shell=True,
                         text=True,
+                        encoding="utf-8",
                         capture_output=True,
                         check=False,
-                    )
+                    ),
+                    ws.project,
+                    skill,
                 )
                 self.assertEqual(dispatched.name, "workflow.md")
                 self.assertTrue(dispatched.is_file())

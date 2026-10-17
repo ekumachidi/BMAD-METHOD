@@ -709,7 +709,7 @@ def render(
 
 
 def report_owed_setup(skill_dir: Path, project_root: Path) -> None:
-    # Runs before rendering so the note lands ahead of the instruction to follow,
+    # Runs before rendering so the note lands ahead of the printed workflow,
     # and still shows when rendering halts. It must never fail the render.
     try:
         import setup_check
@@ -733,10 +733,12 @@ def main() -> int:
         entry = render(
             Path(args.project_root), Path(args.skill), overrides=args.overrides, assignments=args.assignments
         )
+        # Printed, not named: a file the model is told to read may be read only in part.
+        workflow = entry.read_text(encoding="utf-8")
     except (ConfigError, RenderError, OSError, UnicodeError, ValueError) as error:
         sys.stdout.write(f"HALT: {' '.join(str(error).splitlines())}\n")
         return 1
-    sys.stdout.write(f"read and follow {entry}\n")
+    sys.stdout.write(workflow)
     return 0
 
 
