@@ -434,7 +434,8 @@ def spec_folders(store: Path) -> list[Path]:
 
 
 def relative(path: Path, root: Path) -> str:
-    return path.relative_to(root).as_posix()
+    """From the root, or absolute for a store outside it."""
+    return path.relative_to(root).as_posix() if path.is_relative_to(root) else path.as_posix()
 
 
 def fold_spec(project_root: Path, store: Path, folder: Path) -> dict[str, object]:

@@ -15,7 +15,7 @@ detect = """
 
 # `<root>` is `{output_folder}` from the BMad config.
 target = """
-<project-root>/.tickets-folder-migration-backup-<datetime>/   # a copy of the output folder, made first
+<project-root>/.tickets-folder-migration-backup-<datetime>/   # a copy of the output folder and _bmad/custom/, made first
 <root>/
   initiative-<slug>/
     initiative-<slug>.md            # stays, with .memlog.md, glossary.md and document folders such as prd-<slug>/
@@ -52,7 +52,7 @@ When the store is under git, commit the current state before step 3 and after st
 
 ## Backup
 
-Read `core.output_folder` from `_bmad/config.toml` and the `_bmad/custom/` overrides. Copy the whole output folder to `<project-root>/.tickets-folder-migration-backup-<datetime>/` (`<datetime>` as `YYYYMMDD-HHMM`), write a `.gitignore` there holding `*`, and confirm the copy holds every file.
+Read `core.output_folder` from `_bmad/config.toml` and the `_bmad/custom/` overrides. Copy the whole output folder and `_bmad/custom/` to `<project-root>/.tickets-folder-migration-backup-<datetime>/` (`<datetime>` as `YYYYMMDD-HHMM`), write a `.gitignore` there holding `*`, and confirm the copy holds every file.
 
 ## Plan
 
@@ -78,9 +78,9 @@ Report each initiative's tree with `uv run <project-root>/_bmad/method/scripts/t
 # Verification. Every item is checked and its result recorded; an item that cannot be checked is reported as such.
 checklist = [
   "No `initiative-*/` folder under the output folder holds `tickets.toml`, an `epic-*/` folder, a leaf file, or a plan directly, and no `epic-*/` folder holds `tickets.toml`, a leaf file, or a plan directly; each sits in its container's `tickets/` folder.",
-  "Every file the backup holds is in the store at its old path or its new one. Initiative and epic files, `.memlog.md`, `glossary.md`, retrospectives, run folders, and `backlog/` are where they were.",
+  "Every output-folder file the backup holds is in the store at its old path or its new one. Initiative and epic files, `.memlog.md`, `glossary.md`, retrospectives, run folders, and `backlog/` are where they were.",
   "`uv run <project-root>/_bmad/method/scripts/tickets.py --project-root <project-root> status <initiative folder>` exits 0 for every initiative and lists every epic and entry its `tickets.toml` files hold.",
   "Every live path in `sources:`, `companions:`, `inputDocuments:`, References sections, prose links, and `_bmad/custom/` overrides that pointed at a moved file resolves to it from the folder that holds it now, and every glob there matches the files it matched before. A path already dead before the migration is listed apart and does not fail the item.",
   "Under git, every moved tracked file kept its history (`git log --follow` reaches its commits from before the move), and no commit includes the backup.",
-  "`.tickets-folder-migration-backup-<datetime>/` holds every file the output folder held before the migration.",
+  "`.tickets-folder-migration-backup-<datetime>/` holds every file the output folder and `_bmad/custom/` held before the migration.",
 ]

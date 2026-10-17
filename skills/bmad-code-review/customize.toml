@@ -75,7 +75,9 @@ name = "Quick"
 instruction = """
 Launch a context-free subagent with this prompt:
 
-Read `{ticket_file}` in full — the ticket, the requirements this change must meet; it is empty when there is none — then `{plan_file}` — the plan holding the acceptance criteria and intent; empty when there is none — and the files its frontmatter `context:` lists. Read the agent instruction files (`AGENTS.md`, `CLAUDE.md`, or equivalents) at the repository root and in the directories the diff touches; those are the rules. Then read the unified diff at `{diff_file}` — it is the change under review.
+Read `{ticket_file}` in full — the ticket, or the epic of a story with no file; it is empty when there is none. The change must meet this intent, not the rest of an epic: {verbatim_intent}
+
+Then read `{plan_file}` — the plan holding the acceptance criteria and intent; empty when there is none — and the files its frontmatter `context:` lists. Read the agent instruction files (`AGENTS.md`, `CLAUDE.md`, or equivalents) at the repository root and in the directories the diff touches; those are the rules. Then read the unified diff at `{diff_file}` — it is the change under review.
 
 Report unmet acceptance criteria, broken rules, and bugs. Each finding: the location, what goes wrong, and evidence checked against the surrounding code. Output a Markdown list of findings only — no severity, priority, or ranking.
 

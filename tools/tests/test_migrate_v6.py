@@ -614,6 +614,20 @@ class FoldSpecsTests(unittest.TestCase):
         )
         self.assertNotIn("  - ../initiative-golf.md", text)
 
+    def test_a_store_outside_the_project_folds(self):
+        outside = self.project.parent / "plans"
+        shutil.move(self.store, outside)
+        self.store = outside
+        self.initiative = outside / "initiative-golf"
+        epic = self.write_epic_with_spec()
+
+        report = self.fold()
+
+        self.assertEqual(report["problems"], [])
+        (fold,) = report["folded"]
+        self.assertEqual(fold["ticket"], (epic / "epic-ball.md").as_posix())
+        self.assertFalse((epic / "spec-ball").exists())
+
     def test_the_spec_ids_follow_the_requirements_a_ticket_already_has(self):
         epic = self.write_epic_with_spec()
         write(
