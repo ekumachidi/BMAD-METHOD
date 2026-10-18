@@ -1600,15 +1600,45 @@ covers = ["R2", "R3"]
             text,
         )
         self.assertEqual(sorted(p.name for p in tk(self.epic).glob("story-*")), [])
-        head = (tk(pricing) / "story-ui-shell.md").read_text(encoding="utf-8").split("---")[1]
+        moved = (tk(pricing) / "story-ui-shell.md").read_text(encoding="utf-8")
+        head = moved.split("---")[1]
         for line in ("id: 3", "parent: epic-pricing", 'after: ["2.1"]'):
             self.assertIn(f"\n{line}\n", head)
+        self.assertIn("\n- parent — out/initiative-checkout/tickets/epic-pricing/epic-pricing.md\n", moved)
+        self.assertNotIn("epic-cart", moved)
         self.assertIn("\nticket: 3\n", (tk(pricing) / "story-ui-shell-plan.md").read_text(encoding="utf-8"))
         status = json.loads(run("status", str(self.initiative)).stdout)
         self.assertNotIn("problems", status)
         self.assertEqual({e["slug"]: e["next_id"] for e in status["epics"]}, {"epic-pricing": 4, "epic-cart": 5})
         hit = json.loads(run("find", str(self.initiative), "1.3").stdout)
         self.assertEqual((hit["title"], hit["state"], hit["after"]), ("UI shell", "in-progress", ["2.1"]))
+
+    def test_move_to_another_initiative_leaves_its_own_cross_refs_alone(self):
+        pricing = self.pricing()
+        (tk(pricing) / "tickets.toml").write_text(
+            '[[entry]]\nid = 1\ntype = "story"\ntitle = "Pricing contract"\n\n'
+            '[[entry]]\nid = 2\ntype = "story"\ntitle = "Pricing rules"\n'
+        )
+        payments = self.root / "out" / "initiative-payments"
+        payments.mkdir()
+        (payments / "initiative-payments.md").write_text("---\ntype: initiative\n---\n# Payments\n")
+        ledger = payments / "tickets" / "epic-ledger"
+        settle = payments / "tickets" / "epic-settle"
+        for folder in (ledger, settle):
+            folder.mkdir(parents=True)
+            (folder / f"{folder.name}.md").write_text(f"---\ntype: epic\nafter: []\n---\n# {folder.name}\n")
+        (tk(payments) / "tickets.toml").write_text(
+            '[[epic]]\nid = 1\nslug = "epic-ledger"\n\n[[epic]]\nid = 2\nslug = "epic-settle"\n'
+        )
+        (tk(ledger) / "tickets.toml").write_text(
+            '[[entry]]\nid = 1\ntype = "story"\ntitle = "Accounts"\n\n[[entry]]\nid = 2\ntype = "story"\ntitle = "Postings"\n'
+        )
+        (tk(settle) / "tickets.toml").write_text(
+            '[[entry]]\nid = 1\ntype = "story"\ntitle = "Payouts"\nafter = ["1.2"]\n'
+        )
+        r = run("move", str(pricing), "2", str(settle))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn('title = "Payouts"\nafter = ["1.2"]\n', (tk(settle) / "tickets.toml").read_text(encoding="utf-8"))
 
     def test_move_creates_the_destinations_breakdown_and_leaves_what_status_then_reports(self):
         self.pricing()
