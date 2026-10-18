@@ -49,7 +49,7 @@ Each moment produces a written result an approval can attach to. Advise placing 
 |---|---|
 | `bmad-prfaq` verdict | Writing the PRD |
 | `bmad-prd` validate | Design and architecture work |
-| Architecture spine review | Planning each epic's stories as entries |
+| Architecture spine review | Writing each epic's Requirements |
 | `bmad-agent-po` planning approval | Accepting the breakdown and its dependencies |
 | `bmad-retrospective` verdict | Starting the next epic |
 

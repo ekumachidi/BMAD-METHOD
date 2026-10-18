@@ -152,10 +152,11 @@ They will. The path for a change is the same as the path for the original:
 
 1. Run `bmad-prd` in **Update** mode with the change signal. It surfaces
    conflicts with earlier decisions before applying anything.
-2. If the change touches a cross-epic decision, update the spine.
-3. Tell Sofia what changed. She updates the affected tickets' requirements in
+2. Tell Sofia what changed. She updates the affected tickets' requirements in
    place and keeps requirement ids stable, so stories that are unaffected
    stay unaffected, and names the entries that went stale.
+3. If the change touches a cross-epic decision, update the spine. It reads the
+   updated requirements.
 4. For the affected epics, she re-slices those entries and revises the
    remaining breakdown. Keep historical plans and completed states.
 
