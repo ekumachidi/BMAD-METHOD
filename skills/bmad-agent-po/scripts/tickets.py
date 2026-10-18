@@ -1187,6 +1187,15 @@ def cmd_pull(args) -> dict:
     return {"file": path.name, "refine": t["refine"]}
 
 
+def parent_reference(folder: Path, root: Path | None) -> str:
+    """The epic file as a leaf's `- parent —` reference names it."""
+    epic_file = folder / f"{folder.name}.md"
+    try:
+        return Path(os.path.relpath(epic_file, root)).as_posix() if root else epic_file.as_posix()
+    except ValueError:  # another drive on Windows
+        return epic_file.as_posix()
+
+
 def write_leaf(t: dict, tree: dict, root: Path | None) -> Path:
     """Write an entry's leaf file from the entry and name it on the row."""
     folder = tree["folders"][t["epic"]]
@@ -1194,11 +1203,7 @@ def write_leaf(t: dict, tree: dict, root: Path | None) -> Path:
     if path.exists():
         raise TicketError(f"{path.name} exists already; change entry {t['id']}'s title")
     after = [str(ref(b, t["epic"], tree)) for b in t["after"]]
-    epic_file = folder / f"{folder.name}.md"
-    try:
-        parent = Path(os.path.relpath(epic_file, root)).as_posix() if root else epic_file.as_posix()
-    except ValueError:  # another drive on Windows
-        parent = epic_file.as_posix()
+    parent = parent_reference(folder, root)
     notes = ([f"Unknown: {t['unknown']}"] if t["unknown"] else []) + t["notes"]
     # Other empty fields are left out; `after` and `hitl` stay because `status` compares them with the entry.
     # No status: the build writes it when it starts.
@@ -1480,6 +1485,7 @@ def set_after_line(block: str, current: list, new: list, where: str) -> str:
 def cmd_move(args) -> dict:
     """Move an entry, with its leaf file and plan, to another folder, rewriting ids and every `after` that names it."""
     src, dest = locate_dir(args, args.src), locate_dir(args, args.to)
+    root = project_root_for(args, src)
     tree = load_tree(src)
     t = resolve_ticket(tree, args.ref)
     old = tree["folders"][t["epic"]]
@@ -1512,6 +1518,8 @@ def cmd_move(args) -> dict:
     def names_moved(e, folder: Path) -> bool:
         if folder.resolve() == old.resolve() and is_sibling(e, t):
             return True
+        if all(f.resolve() != folder.resolve() for f in tree["folders"].values()):
+            return False  # another initiative numbers its epics its own way
         m = CROSS_RE.match(e) if isinstance(e, str) else None
         return bool(m and slugs.get(_id(m.group(1))) == old.name and _id(m.group(2)) == t["id"])
 
@@ -1634,7 +1642,15 @@ def cmd_move(args) -> dict:
         for source, target, values in moves:
             keep(source)
             keep(target)
-            target.write_bytes(source.read_bytes())
+            raw = source.read_bytes()
+            if source.name == t["file"]:
+                raw = re.sub(
+                    rb"(?m)^- parent \xe2\x80\x94 [^\r\n]*",
+                    lambda _: f"- parent — {parent_reference(dest, root)}".encode(),
+                    raw,
+                    count=1,
+                )
+            target.write_bytes(raw)
             edit_frontmatter(target, values)
             source.unlink()
         for folder in (dest, old):

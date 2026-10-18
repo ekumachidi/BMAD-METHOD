@@ -440,7 +440,7 @@ def relative(path: Path, root: Path) -> str:
 
 def fold_spec(project_root: Path, store: Path, folder: Path) -> dict[str, object]:
     slug = SPEC_FOLDER.match(folder.name)["slug"]
-    spec = parse_spec((folder / f"{folder.name}.md").read_text(encoding="utf-8"))
+    spec = parse_spec(read_for_fold(folder / f"{folder.name}.md", project_root))
     loose = folder.parent == store
     if loose:
         home = store / "backlog"
@@ -463,7 +463,7 @@ def fold_spec(project_root: Path, store: Path, folder: Path) -> dict[str, object
     if taken:
         raise FoldProblem(f"{', '.join(taken)} already exist(s) beside the ticket")
 
-    existing = ticket.read_text(encoding="utf-8") if ticket.is_file() else ""
+    existing = read_for_fold(ticket, project_root) if ticket.is_file() else ""
     existing_requirements = section_body(existing, "Requirements")
     offset = max((int(n) for n in R_LINE.findall(existing_requirements)), default=0)
     ids = {f"CAP-{n}": f"R{n + offset}" for n in spec["capabilities"]}
@@ -500,22 +500,31 @@ def fold_spec(project_root: Path, store: Path, folder: Path) -> dict[str, object
     new_prefix = "backlog/" if loose else ""
     rewrites = [(f"{folder.name}/{folder.name}.md", f"{new_prefix}{ticket.name}")]
     rewrites += [(f"{folder.name}/{path.name}", f"{new_prefix}{path.name}") for path in moving]
-    rewritten: list[str] = []
+    # Every rewrite is read and computed first, so a file that cannot be read stops the fold before anything changes.
+    writes: dict[Path, str] = {}
     for path in text_files(store, skip=(folder,)):
-        text = path.read_text(encoding="utf-8")
+        text = read_for_fold(path, project_root)
         changed = text
         for old, new in rewrites:
             changed = rewrite_reference(changed, old, new, path, folder.parent, project_root)
         if changed != text:
-            path.write_text(changed, encoding="utf-8")
-            rewritten.append(relative(path, project_root))
+            writes[path] = changed
+    for path in companion_files(moving):
+        text = read_for_fold(path, project_root)
+        changed = rebase_links(text, path, folder, home, ticket)
+        if changed != text:
+            writes[path] = changed
     for path in cap_scope(home, folder, moving) if not loose else companion_files(moving):
-        text = path.read_text(encoding="utf-8")
+        text = writes[path] if path in writes else read_for_fold(path, project_root)
         changed = map_caps(text)
         if changed != text:
-            path.write_text(changed, encoding="utf-8")
-            if relative(path, project_root) not in rewritten:
-                rewritten.append(relative(path, project_root))
+            writes[path] = changed
+    for path in (home / MEMLOG, folder / MEMLOG):
+        if path.is_file():
+            read_for_fold(path, project_root)
+    for path, text in writes.items():
+        path.write_text(text, encoding="utf-8")
+    rewritten = [relative(path, project_root) for path in writes]
 
     references, unresolved = companion_references(spec["companions"], folder, home, project_root, store)
     sources = [rebase(item, folder, home, project_root, store) for item in spec["sources"]]
@@ -595,6 +604,36 @@ def rewrite_reference(text: str, old: str, new: str, file: Path, base: Path, pro
     return "".join(out) + text[last:]
 
 
+LINK_TOKEN = re.compile(r"[^\s()\[\]<>\"'`,|=:]+")
+
+
+def rebase_links(text: str, file: Path, folder: Path, home: Path, ticket: Path) -> str:
+    """A companion's links as they read once it moves from the spec folder to `home`: a `./` or `../` path that
+    leaves the folder is recomputed from the new place, and a path to the spec itself names the ticket."""
+    spec = (folder / f"{folder.name}.md").resolve()
+    new_parent = (home / file.relative_to(folder)).parent.resolve()
+
+    def swap(match: re.Match[str]) -> str:
+        path, hash_, anchor = match.group(0).partition("#")
+        if not path.startswith(("./", "../")) and path != spec.name:
+            return match.group(0)
+        target = (file.parent / path).resolve()
+        if target == spec:
+            target = ticket.resolve()
+        elif target.is_relative_to(folder.resolve()) or not target.exists():
+            return match.group(0)
+        return Path(os.path.relpath(target, new_parent)).as_posix() + hash_ + anchor
+
+    return LINK_TOKEN.sub(swap, text)
+
+
+def read_for_fold(path: Path, project_root: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as error:
+        raise FoldProblem(f"{relative(path, project_root)} cannot be read: {error}") from error
+
+
 def text_files(root: Path, *, skip: tuple[Path, ...] = ()) -> list[Path]:
     """The .md and .toml files under root, hidden files, archives and `skip` folders left out."""
     found: list[Path] = []
@@ -653,15 +692,20 @@ def parse_spec(text: str) -> dict[str, object]:
     sections = {name.lower(): content for name, content in split_sections(body)[1]}
     capabilities: dict[int, str] = {}
     current: dict[str, str] | None = None
+    key = "rest"
     blocks: list[tuple[int, dict[str, str]]] = []
     for line in sections.get("capabilities", "").splitlines():
         if match := CAPABILITY.match(line):
-            current = {"rest": match.group(3).strip()}
+            current, key = {"rest": match.group(3).strip()}, "rest"
             blocks.append((int(match.group(2)), current))
         elif current is not None and (field := CAPABILITY_FIELD.match(line)):
-            current[field.group(1)] = field.group(2).strip()
+            key = field.group(1)
+            current[key] = field.group(2).strip()
         elif current is not None and line.strip():
-            current["rest"] = f"{current['rest']} {line.strip()}".strip()
+            # A wrapped line continues the field above it; another bullet does not.
+            if line.lstrip().startswith("- "):
+                key = "rest"
+            current[key] = f"{current.get(key, '')} {line.strip()}".strip()
     for number, block in blocks:
         intent, success = block.get("intent", ""), block.get("success", "")
         line = intent or block["rest"]
@@ -718,8 +762,19 @@ def frontmatter_list(meta: list[str], key: str) -> list[str]:
 
 
 def bullets(section: str) -> list[str]:
-    """Bullet lines as plain text, without placeholder comments."""
-    return [line.strip()[2:].strip() for line in section.splitlines() if line.strip().startswith("- ")]
+    """Bullet lines as plain text, a wrapped line joined to its bullet, without placeholder comments."""
+    items: list[str] = []
+    open_item = False
+    for line in section.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("- "):
+            items.append(stripped[2:].strip())
+            open_item = True
+        elif open_item and stripped and not stripped.startswith("<!--"):
+            items[-1] = f"{items[-1]} {stripped}"
+        else:
+            open_item = False
+    return items
 
 
 def split_sections(text: str) -> tuple[str, list[tuple[str, str]]]:
