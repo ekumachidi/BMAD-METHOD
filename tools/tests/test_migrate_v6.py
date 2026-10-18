@@ -814,6 +814,19 @@ class FoldSpecsTests(unittest.TestCase):
         self.assertIn("_bmad-output/initiative-golf/notes.md cannot be read", problem["problem"])
         self.assertEqual(snapshot(self.project), before)
 
+    def test_an_unreadable_memlog_is_reported_and_nothing_changes(self):
+        epic = self.write_epic_with_spec()
+        write(epic / ".memlog.md", "---\ntopic: Ball\n---\n")
+        (epic / "spec-ball" / ".memlog.md").write_bytes(b"\xff\xfe not utf-8")
+        before = snapshot(self.project)
+
+        report = self.fold()
+
+        self.assertEqual(report["folded"], [])
+        (problem,) = report["problems"]
+        self.assertIn("spec-ball/.memlog.md cannot be read", problem["problem"])
+        self.assertEqual(snapshot(self.project), before)
+
     def test_a_parent_folded_on_a_later_run_leaves_the_folded_childs_ids_alone(self):
         epic = self.write_epic_with_spec()
         write(

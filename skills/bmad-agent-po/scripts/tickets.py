@@ -1644,9 +1644,11 @@ def cmd_move(args) -> dict:
             keep(target)
             raw = source.read_bytes()
             if source.name == t["file"]:
-                raw = raw.replace(
-                    f"- parent — {parent_reference(old, root)}".encode(),
-                    f"- parent — {parent_reference(dest, root)}".encode(),
+                raw = re.sub(
+                    rb"(?m)^- parent \xe2\x80\x94 [^\r\n]*",
+                    lambda _: f"- parent — {parent_reference(dest, root)}".encode(),
+                    raw,
+                    count=1,
                 )
             target.write_bytes(raw)
             edit_frontmatter(target, values)

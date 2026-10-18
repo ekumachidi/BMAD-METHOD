@@ -519,6 +519,9 @@ def fold_spec(project_root: Path, store: Path, folder: Path) -> dict[str, object
         changed = map_caps(text)
         if changed != text:
             writes[path] = changed
+    for path in (home / MEMLOG, folder / MEMLOG):
+        if path.is_file():
+            read_for_fold(path, project_root)
     for path, text in writes.items():
         path.write_text(text, encoding="utf-8")
     rewritten = [relative(path, project_root) for path in writes]
