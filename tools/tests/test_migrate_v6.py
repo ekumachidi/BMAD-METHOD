@@ -769,6 +769,51 @@ class FoldSpecsTests(unittest.TestCase):
         )
         self.assertEqual(snapshot(self.project), before)
 
+    def test_wrapped_lines_in_a_spec_keep_their_text(self):
+        epic = self.write_epic_with_spec()
+        spec = (epic / "spec-ball" / "spec-ball.md").read_text(encoding="utf-8")
+        spec = spec.replace(
+            "  - **intent:** A player sees the ball follow a physically plausible arc.",
+            "  - **intent:** A player sees the ball follow\n    a physically plausible arc.",
+        ).replace(
+            "- Simulation runs at 120 Hz on the minimum device.",
+            "- Simulation runs at 120 Hz\n  on the minimum device.",
+        )
+        write(epic / "spec-ball" / "spec-ball.md", spec)
+
+        self.fold()
+
+        text = (epic / "epic-ball.md").read_text(encoding="utf-8")
+        self.assertIn("- R1 (CAP-1): A player sees the ball follow a physically plausible arc. Success:", text)
+        self.assertIn("- Simulation runs at 120 Hz on the minimum device.\n", text)
+
+    def test_a_moving_companions_links_still_reach_their_files(self):
+        epic = self.write_epic_with_spec()
+        write(
+            epic / "spec-ball" / "glossary.md",
+            "See [the PRD](../../prd-golf/prd-golf.md#carry), spec-ball.md and [details](./details.md).\n",
+        )
+        write(epic / "spec-ball" / "details.md", "details\n")
+
+        self.fold()
+
+        self.assertEqual(
+            (epic / "glossary.md").read_text(encoding="utf-8"),
+            "See [the PRD](../prd-golf/prd-golf.md#carry), epic-ball.md and [details](./details.md).\n",
+        )
+
+    def test_an_unreadable_file_in_the_store_is_reported_and_nothing_changes(self):
+        self.write_epic_with_spec()
+        (self.initiative / "notes.md").write_bytes(b"\xff\xfe not utf-8")
+        before = snapshot(self.project)
+
+        report = self.fold()
+
+        self.assertEqual(report["folded"], [])
+        (problem,) = report["problems"]
+        self.assertIn("_bmad-output/initiative-golf/notes.md cannot be read", problem["problem"])
+        self.assertEqual(snapshot(self.project), before)
+
     def test_a_parent_folded_on_a_later_run_leaves_the_folded_childs_ids_alone(self):
         epic = self.write_epic_with_spec()
         write(
